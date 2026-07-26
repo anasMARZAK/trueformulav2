@@ -193,18 +193,6 @@ export function Header({
                 </button>
               </div>
 
-              {/* Account Portal / Login Link */}
-              <Link
-                href={user ? '/account' : '/login'}
-                className="p-2 text-gray-700 hover:text-[#2E5A44] hover:bg-[#EAF2ED] rounded-full transition-colors flex items-center space-x-1"
-                title={user ? t.header.account : 'Sign In'}
-              >
-                <User className="w-5 h-5" />
-                <span className="hidden xl:inline text-xs font-medium">
-                  {user ? (user.fullName?.split(' ')[0] || t.header.account) : 'Sign In'}
-                </span>
-              </Link>
-
               {/* Admin Link (Only visible if user is an Admin or in Dev mode) */}
               {(role === 'admin' || process.env.NODE_ENV !== 'production') && (
                 <Link
@@ -221,100 +209,94 @@ export function Header({
                 </Link>
               )}
 
-              {/* Logged-in User Badge & Quick Switcher Dropdown */}
-              <div className="relative">
-                {isLoggedIn && user ? (
+              {/* Single Clean Account Action (Logged Out: Sign In Link -> /login | Logged In: User Profile Menu) */}
+              {isLoggedIn && user ? (
+                <div className="relative">
                   <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-[#EAF2ED] hover:bg-[#DDF0E5] border border-[#C6DFD1] rounded-full text-xs font-medium text-gray-800 transition-colors"
+                    className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#EAF2ED] hover:bg-[#DDF0E5] border border-[#C6DFD1] rounded-full text-xs font-medium text-gray-800 transition-colors cursor-pointer"
                   >
-                    <span
-                      className={`w-2 h-2 rounded-full ${
-                        role === 'admin' ? 'bg-amber-500' : 'bg-emerald-600'
-                      }`}
-                    />
-                    <span className="truncate max-w-[100px] font-semibold text-[11px]">
-                      {user.fullName || user.email.split('@')[0]}
-                    </span>
-                    <span className="text-[9px] uppercase px-1.5 py-0.5 rounded font-mono bg-white text-gray-700 border border-gray-200">
-                      {role}
+                    <User className="w-4 h-4 text-[#2E5A44]" />
+                    <span className="font-semibold text-xs text-[#111827]">
+                      {user.fullName?.split(' ')[0] || user.email.split('@')[0]}
                     </span>
                     <ChevronDown className="w-3 h-3 text-gray-500" />
                   </button>
-                ) : (
-                  <button
-                    onClick={() => setIsAuthModalOpen(true)}
-                    className="px-3 py-1.5 bg-[#2E5A44] text-white hover:bg-[#234735] text-xs font-semibold rounded-full transition-all shadow-xs cursor-pointer"
-                  >
-                    {t.auth.signInBtn}
-                  </button>
-                )}
 
-                {/* Dropdown Menu */}
-                {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-[#C6DFD1] rounded-2xl shadow-xl py-2 z-50 animate-in fade-in duration-150">
-                    <div className="px-4 py-2 border-b border-gray-100">
-                      <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                        {t.auth.loggedInAs}
-                      </p>
-                      <p className="text-xs font-bold text-gray-900 truncate">{user?.email}</p>
-                    </div>
-
-                    {process.env.NODE_ENV !== 'production' && (
-                      <div className="py-1 border-b border-gray-100">
-                        <p className="px-4 py-1 text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                          {t.auth.switchRole}
+                  {/* Logged-In User Dropdown Menu */}
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white border border-[#C6DFD1] rounded-2xl shadow-xl py-2 z-50 animate-in fade-in duration-150">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                          {t.auth.loggedInAs}
                         </p>
+                        <p className="text-xs font-bold text-gray-900 truncate">{user?.email}</p>
+                      </div>
+
+                      {process.env.NODE_ENV !== 'production' && (
+                        <div className="py-1 border-b border-gray-100">
+                          <p className="px-4 py-1 text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                            {t.auth.switchRole}
+                          </p>
+                          <button
+                            onClick={() => {
+                              switchRole('customer');
+                              setIsUserMenuOpen(false);
+                            }}
+                            className={`w-full px-4 py-1.5 text-left text-xs flex items-center justify-between hover:bg-[#EAF2ED] ${
+                              role === 'customer' ? 'font-bold text-[#2E5A44]' : 'text-gray-700'
+                            }`}
+                          >
+                            <span>{t.auth.roleCustomer} (Jane Doe)</span>
+                            {role === 'customer' && <span className="text-[10px] text-emerald-600">Active</span>}
+                          </button>
+                          <button
+                            onClick={() => {
+                              switchRole('admin');
+                              setIsUserMenuOpen(false);
+                            }}
+                            className={`w-full px-4 py-1.5 text-left text-xs flex items-center justify-between hover:bg-[#EAF2ED] ${
+                              role === 'admin' ? 'font-bold text-amber-700' : 'text-gray-700'
+                            }`}
+                          >
+                            <span>{t.auth.roleAdmin} (Store Admin)</span>
+                            {role === 'admin' && <span className="text-[10px] text-amber-600">Active</span>}
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="pt-1">
+                        <Link
+                          href="/account"
+                          onClick={() => setIsUserMenuOpen(false)}
+                          className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-[#EAF2ED] flex items-center space-x-2 font-medium"
+                        >
+                          <User className="w-3.5 h-3.5 text-[#2E5A44]" />
+                          <span>Account & Subscriptions</span>
+                        </Link>
                         <button
                           onClick={() => {
-                            switchRole('customer');
+                            logout();
                             setIsUserMenuOpen(false);
                           }}
-                          className={`w-full px-4 py-1.5 text-left text-xs flex items-center justify-between hover:bg-[#EAF2ED] ${
-                            role === 'customer' ? 'font-bold text-[#2E5A44]' : 'text-gray-700'
-                          }`}
+                          className="w-full px-4 py-2 text-left text-xs text-red-600 hover:bg-red-50 flex items-center space-x-2 font-medium cursor-pointer"
                         >
-                          <span>{t.auth.roleCustomer} (Jane Doe)</span>
-                          {role === 'customer' && <span className="text-[10px] text-emerald-600">Active</span>}
-                        </button>
-                        <button
-                          onClick={() => {
-                            switchRole('admin');
-                            setIsUserMenuOpen(false);
-                          }}
-                          className={`w-full px-4 py-1.5 text-left text-xs flex items-center justify-between hover:bg-[#EAF2ED] ${
-                            role === 'admin' ? 'font-bold text-amber-700' : 'text-gray-700'
-                          }`}
-                        >
-                          <span>{t.auth.roleAdmin} (Store Admin)</span>
-                          {role === 'admin' && <span className="text-[10px] text-amber-600">Active</span>}
+                          <LogOut className="w-3.5 h-3.5" />
+                          <span>{t.auth.logout}</span>
                         </button>
                       </div>
-                    )}
-
-                    <div className="pt-1">
-                      <Link
-                        href="/account"
-                        onClick={() => setIsUserMenuOpen(false)}
-                        className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-[#EAF2ED] flex items-center space-x-2 font-medium"
-                      >
-                        <User className="w-3.5 h-3.5 text-[#2E5A44]" />
-                        <span>Account & Subscriptions</span>
-                      </Link>
-                      <button
-                        onClick={() => {
-                          logout();
-                          setIsUserMenuOpen(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-xs text-red-600 hover:bg-red-50 flex items-center space-x-2 font-medium cursor-pointer"
-                      >
-                        <LogOut className="w-3.5 h-3.5" />
-                        <span>{t.auth.logout}</span>
-                      </button>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  className="px-3.5 py-1.5 text-gray-700 hover:text-[#2E5A44] hover:bg-[#EAF2ED] rounded-full transition-colors flex items-center space-x-1.5 text-xs font-semibold"
+                >
+                  <User className="w-4 h-4 text-[#2E5A44]" />
+                  <span>{language === 'fr' ? 'Se connecter' : 'Sign In'}</span>
+                </Link>
+              )}
 
               {/* Mobile Hamburger Trigger */}
               <button
