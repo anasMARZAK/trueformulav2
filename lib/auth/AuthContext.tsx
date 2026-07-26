@@ -41,8 +41,10 @@ const DEFAULT_ADMIN_USER: AuthUser = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const isProd = process.env.NODE_ENV === 'production';
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(DEFAULT_CUSTOMER_USER);
+  const [user, setUser] = useState<AuthUser | null>(isProd ? null : DEFAULT_CUSTOMER_USER);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -52,8 +54,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (savedAuth) {
         const parsed = JSON.parse(savedAuth);
         if (parsed && parsed.email) {
-          setUser(parsed);
+          if (isProd && (parsed.id === 'user_customer_01' || parsed.id === 'user_admin_01')) {
+            localStorage.removeItem(AUTH_STORAGE_KEY);
+            setUser(null);
+          } else {
+            setUser(parsed);
+          }
         }
+      } else if (isProd) {
+        setUser(null);
       }
     } catch {
       // Storage unavailable

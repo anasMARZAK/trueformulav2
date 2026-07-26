@@ -205,19 +205,21 @@ export function Header({
                 </span>
               </Link>
 
-              {/* Admin Link */}
-              <Link
-                href="/admin"
-                className={`p-2 rounded-full transition-colors flex items-center space-x-1 ${
-                  role === 'admin'
-                    ? 'text-amber-700 bg-amber-50 hover:bg-amber-100 font-bold border border-amber-200'
-                    : 'text-gray-700 hover:text-[#2E5A44] hover:bg-[#EAF2ED]'
-                }`}
-                title={t.header.admin}
-              >
-                <ShieldAlert className="w-5 h-5" />
-                <span className="hidden xl:inline text-xs font-semibold">{t.header.admin}</span>
-              </Link>
+              {/* Admin Link (Only visible if user is an Admin or in Dev mode) */}
+              {(role === 'admin' || process.env.NODE_ENV !== 'production') && (
+                <Link
+                  href="/admin"
+                  className={`p-2 rounded-full transition-colors flex items-center space-x-1 ${
+                    role === 'admin'
+                      ? 'text-amber-700 bg-amber-50 hover:bg-amber-100 font-bold border border-amber-200'
+                      : 'text-gray-700 hover:text-[#2E5A44] hover:bg-[#EAF2ED]'
+                  }`}
+                  title={t.header.admin}
+                >
+                  <ShieldAlert className="w-5 h-5" />
+                  <span className="hidden xl:inline text-xs font-semibold">{t.header.admin}</span>
+                </Link>
+              )}
 
               {/* Logged-in User Badge & Quick Switcher Dropdown */}
               <div className="relative">
@@ -242,7 +244,7 @@ export function Header({
                 ) : (
                   <button
                     onClick={() => setIsAuthModalOpen(true)}
-                    className="px-3 py-1.5 bg-[#2E5A44] text-white hover:bg-[#234735] text-xs font-semibold rounded-full transition-all shadow-xs"
+                    className="px-3 py-1.5 bg-[#2E5A44] text-white hover:bg-[#234735] text-xs font-semibold rounded-full transition-all shadow-xs cursor-pointer"
                   >
                     {t.auth.signInBtn}
                   </button>
@@ -258,43 +260,53 @@ export function Header({
                       <p className="text-xs font-bold text-gray-900 truncate">{user?.email}</p>
                     </div>
 
-                    <div className="py-1 border-b border-gray-100">
-                      <p className="px-4 py-1 text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                        {t.auth.switchRole}
-                      </p>
-                      <button
-                        onClick={() => {
-                          switchRole('customer');
-                          setIsUserMenuOpen(false);
-                        }}
-                        className={`w-full px-4 py-1.5 text-left text-xs flex items-center justify-between hover:bg-[#EAF2ED] ${
-                          role === 'customer' ? 'font-bold text-[#2E5A44]' : 'text-gray-700'
-                        }`}
-                      >
-                        <span>{t.auth.roleCustomer} (Jane Doe)</span>
-                        {role === 'customer' && <span className="text-[10px] text-emerald-600">Active</span>}
-                      </button>
-                      <button
-                        onClick={() => {
-                          switchRole('admin');
-                          setIsUserMenuOpen(false);
-                        }}
-                        className={`w-full px-4 py-1.5 text-left text-xs flex items-center justify-between hover:bg-[#EAF2ED] ${
-                          role === 'admin' ? 'font-bold text-amber-700' : 'text-gray-700'
-                        }`}
-                      >
-                        <span>{t.auth.roleAdmin} (Store Admin)</span>
-                        {role === 'admin' && <span className="text-[10px] text-amber-600">Active</span>}
-                      </button>
-                    </div>
+                    {process.env.NODE_ENV !== 'production' && (
+                      <div className="py-1 border-b border-gray-100">
+                        <p className="px-4 py-1 text-[10px] text-gray-400 uppercase font-bold tracking-wider">
+                          {t.auth.switchRole}
+                        </p>
+                        <button
+                          onClick={() => {
+                            switchRole('customer');
+                            setIsUserMenuOpen(false);
+                          }}
+                          className={`w-full px-4 py-1.5 text-left text-xs flex items-center justify-between hover:bg-[#EAF2ED] ${
+                            role === 'customer' ? 'font-bold text-[#2E5A44]' : 'text-gray-700'
+                          }`}
+                        >
+                          <span>{t.auth.roleCustomer} (Jane Doe)</span>
+                          {role === 'customer' && <span className="text-[10px] text-emerald-600">Active</span>}
+                        </button>
+                        <button
+                          onClick={() => {
+                            switchRole('admin');
+                            setIsUserMenuOpen(false);
+                          }}
+                          className={`w-full px-4 py-1.5 text-left text-xs flex items-center justify-between hover:bg-[#EAF2ED] ${
+                            role === 'admin' ? 'font-bold text-amber-700' : 'text-gray-700'
+                          }`}
+                        >
+                          <span>{t.auth.roleAdmin} (Store Admin)</span>
+                          {role === 'admin' && <span className="text-[10px] text-amber-600">Active</span>}
+                        </button>
+                      </div>
+                    )}
 
                     <div className="pt-1">
+                      <Link
+                        href="/account"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-[#EAF2ED] flex items-center space-x-2 font-medium"
+                      >
+                        <User className="w-3.5 h-3.5 text-[#2E5A44]" />
+                        <span>Account & Subscriptions</span>
+                      </Link>
                       <button
                         onClick={() => {
                           logout();
                           setIsUserMenuOpen(false);
                         }}
-                        className="w-full px-4 py-2 text-left text-xs text-red-600 hover:bg-red-50 flex items-center space-x-2 font-medium"
+                        className="w-full px-4 py-2 text-left text-xs text-red-600 hover:bg-red-50 flex items-center space-x-2 font-medium cursor-pointer"
                       >
                         <LogOut className="w-3.5 h-3.5" />
                         <span>{t.auth.logout}</span>

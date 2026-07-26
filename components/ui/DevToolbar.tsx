@@ -17,6 +17,8 @@ import {
 import { toast } from 'sonner';
 
 export function DevToolbar() {
+  if (process.env.NODE_ENV === 'production') return null;
+
   const [isOpen, setIsOpen] = useState(false);
   const [simMode, setSimMode] = useState<'always_success' | 'force_failure'>('always_success');
   const [isLoadingSim, setIsLoadingSim] = useState(false);
