@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDFBF7" />
+      <stop offset="100%" stop-color="#EAF2ED" />
+    </linearGradient>
+    <linearGradient id="jarGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2C302E" />
+      <stop offset="50%" stop-color="#4A524D" />
+      <stop offset="100%" stop-color="#1F2321" />
+    </linearGradient>
+    <filter id="shadow2" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#111827" flood-opacity="0.1" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="600" fill="url(#bgGrad2)" />
+  <circle cx="300" cy="300" r="220" fill="#FFFFFF" opacity="0.7" />
+
+  <!-- Jar Shape -->
+  <g filter="url(#shadow2)">
+    <!-- Lid -->
+    <rect x="220" y="160" width="160" height="35" rx="6" fill="#111827" />
+    <!-- Main Jar -->
+    <path d="M 225 195 L 375 195 C 385 195 390 205 390 215 L 385 430 C 385 442 375 450 360 450 L 240 450 C 225 450 215 442 215 430 L 210 215 C 210 205 215 195 225 195 Z" fill="url(#jarGrad)" />
+  </g>
+
+  <!-- Label -->
+  <rect x="235" y="230" width="130" height="190" rx="4" fill="#FDFBF7" stroke="#2E5A44" stroke-width="1.5" />
+  
+  <text x="300" y="255" font-family="Georgia, serif" font-size="9" fill="#2E5A44" text-anchor="middle" letter-spacing="1.5">BIO-LUXE MONOGRAPH</text>
+  <line x1="250" y1="262" x2="350" y2="262" stroke="#D4AF37" stroke-width="1" />
+
+  <text x="300" y="290" font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">MICRONIZED</text>
+  <text x="300" y="310" font-family="Georgia, serif" font-size="14" font-style="italic" fill="#2E5A44" text-anchor="middle">Creatine</text>
+
+  <rect x="255" y="330" width="90" height="26" rx="13" fill="#2E5A44" />
+  <text x="300" y="347" font-family="sans-serif" font-size="10" font-weight="bold" fill="#FFFFFF" text-anchor="middle">100% PURE</text>
+
+  <circle cx="300" cy="385" r="10" fill="none" stroke="#D4AF37" stroke-width="1.5" />
+  <text x="300" y="389" font-family="Georgia, serif" font-size="10" fill="#D4AF37" text-anchor="middle">C</text>
+</svg>

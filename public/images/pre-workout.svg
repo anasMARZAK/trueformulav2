@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad6" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDFBF7" />
+      <stop offset="100%" stop-color="#FCF5E8" />
+    </linearGradient>
+    <linearGradient id="preGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8B3A2B" />
+      <stop offset="50%" stop-color="#AD4A38" />
+      <stop offset="100%" stop-color="#6E2B1F" />
+    </linearGradient>
+    <filter id="shadow6" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="15" flood-color="#111827" flood-opacity="0.1" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="600" fill="url(#bgGrad6)" />
+  <circle cx="300" cy="300" r="220" fill="#FCF0D6" opacity="0.6" />
+
+  <!-- Tub Contour -->
+  <g filter="url(#shadow6)">
+    <rect x="220" y="160" width="160" height="35" rx="6" fill="#111827" />
+    <path d="M 225 195 L 375 195 C 385 195 390 205 390 215 L 385 430 C 385 442 375 450 360 450 L 240 450 C 225 450 215 442 215 430 L 210 215 C 210 205 215 195 225 195 Z" fill="url(#preGrad)" />
+  </g>
+
+  <!-- Label -->
+  <rect x="235" y="230" width="130" height="190" rx="4" fill="#FDFBF7" stroke="#AD4A38" stroke-width="1.5" />
+  
+  <text x="300" y="255" font-family="Georgia, serif" font-size="9" fill="#AD4A38" text-anchor="middle" letter-spacing="1.5">BIO-ENERGY ELIXIR</text>
+  <line x1="250" y1="262" x2="350" y2="262" stroke="#D4AF37" stroke-width="1" />
+
+  <text x="300" y="290" font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">PRE-WORKOUT</text>
+  <text x="300" y="310" font-family="Georgia, serif" font-size="13" font-style="italic" fill="#AD4A38" text-anchor="middle">Clean Ignition</text>
+
+  <rect x="250" y="330" width="100" height="26" rx="13" fill="#FCF0D6" />
+  <text x="300" y="347" font-family="sans-serif" font-size="10" font-weight="bold" fill="#8B3A2B" text-anchor="middle">ZERO JITTERS</text>
+
+  <!-- Energy Lightning symbol -->
+  <path d="M 302 370 L 292 388 L 300 388 L 298 405 L 310 384 L 302 384 Z" fill="#D4AF37" />
+</svg>

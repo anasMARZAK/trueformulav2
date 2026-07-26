@@ -1,0 +1,34 @@
+# Dependencies
+/node_modules
+/.pnpm-store
+
+# Next.js build output
+/.next/
+/out/
+
+# Production build / TS cache
+/build
+*.tsbuildinfo
+
+# Environment variables & local secrets
+.env*.local
+.env.production
+.env
+
+# Debug & log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Operating System & IDE files
+.DS_Store
+Thumbs.db
+*.pem
+.vscode/
+.idea/
+
+# Agent temporary files
+.agents/
+.gemini/

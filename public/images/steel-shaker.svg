@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad7" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDFBF7" />
+      <stop offset="100%" stop-color="#EAF2ED" />
+    </linearGradient>
+    <linearGradient id="steelGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#2D3748" />
+      <stop offset="50%" stop-color="#4A5568" />
+      <stop offset="100%" stop-color="#1A202C" />
+    </linearGradient>
+    <filter id="shadow7" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#111827" flood-opacity="0.12" />
+    </filter>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="600" height="600" fill="url(#bgGrad7)" />
+  <circle cx="300" cy="300" r="230" fill="#FFFFFF" opacity="0.7" />
+
+  <!-- Steel Shaker Bottle -->
+  <g filter="url(#shadow7)">
+    <!-- Cap Loop & Spout -->
+    <rect x="270" y="110" width="60" height="25" rx="5" fill="#1A202C" />
+    <path d="M 285 110 A 15 15 0 0 1 315 110" fill="none" stroke="#2E5A44" stroke-width="4" />
+    <!-- Lid Lid -->
+    <path d="M 230 135 L 370 135 C 380 135 385 145 385 155 L 380 185 L 220 185 L 215 155 C 215 145 220 135 230 135 Z" fill="#2D3748" />
+    <line x1="220" y1="185" x2="380" y2="185" stroke="#D4AF37" stroke-width="2" />
+    <!-- Tapered Body -->
+    <path d="M 230 187 L 370 187 L 350 460 C 348 470 338 478 325 478 L 275 478 C 262 478 252 470 250 460 Z" fill="url(#steelGrad)" />
+  </g>
+
+  <!-- Engraved Apothecary Logo on Bottle -->
+  <rect x="250" y="260" width="100" height="130" rx="4" fill="none" stroke="#D4AF37" stroke-width="1" stroke-dasharray="3 3" opacity="0.6" />
+  
+  <text x="300" y="290" font-family="Georgia, serif" font-size="10" fill="#E2E8F0" text-anchor="middle" letter-spacing="1.5">APOTHECARY</text>
+  <text x="300" y="315" font-family="Georgia, serif" font-size="14" font-weight="bold" fill="#FFFFFF" text-anchor="middle">MATTE STEEL</text>
+  <text x="300" y="335" font-family="Georgia, serif" font-size="11" font-style="italic" fill="#CBD5E0" text-anchor="middle">750ml / 25oz</text>
+
+  <rect x="265" y="352" width="70" height="20" rx="10" fill="#2E5A44" />
+  <text x="300" y="366" font-family="sans-serif" font-size="9" font-weight="bold" fill="#FFFFFF" text-anchor="middle">24H COLD</text>
+</svg>

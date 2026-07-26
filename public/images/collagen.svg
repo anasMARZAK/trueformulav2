@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDFBF7" />
+      <stop offset="100%" stop-color="#F7F0E6" />
+    </linearGradient>
+    <linearGradient id="bottleGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7C5237" />
+      <stop offset="50%" stop-color="#9C6B4B" />
+      <stop offset="100%" stop-color="#64402A" />
+    </linearGradient>
+    <filter id="shadow3" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="15" flood-color="#111827" flood-opacity="0.08" />
+    </filter>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="600" height="600" fill="url(#bgGrad3)" />
+  <circle cx="300" cy="300" r="220" fill="#EAF2ED" opacity="0.4" />
+
+  <!-- Amber Apothecary Jar -->
+  <g filter="url(#shadow3)">
+    <!-- Lid -->
+    <rect x="230" y="140" width="140" height="35" rx="4" fill="#111827" />
+    <!-- Jar Neck & Body -->
+    <rect x="245" y="175" width="110" height="20" fill="#7C5237" />
+    <path d="M 215 195 L 385 195 C 395 195 400 205 400 215 L 395 440 C 395 452 385 460 370 460 L 230 460 C 215 460 205 452 205 440 L 200 215 C 200 205 205 195 215 195 Z" fill="url(#bottleGrad3)" opacity="0.95" />
+  </g>
+
+  <!-- Cream Label -->
+  <rect x="225" y="230" width="150" height="200" rx="4" fill="#FDFBF7" stroke="#9C6B4B" stroke-width="1.5" />
+  
+  <text x="300" y="255" font-family="Georgia, serif" font-size="9" fill="#9C6B4B" text-anchor="middle" letter-spacing="1.5">ELIXIR DE JEUNESSE</text>
+  <line x1="245" y1="263" x2="355" y2="263" stroke="#D4AF37" stroke-width="1" />
+
+  <text x="300" y="292" font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#111827" text-anchor="middle">BIO-ACTIVE</text>
+  <text x="300" y="312" font-family="Georgia, serif" font-size="14" font-style="italic" fill="#9C6B4B" text-anchor="middle">Marine Collagen</text>
+
+  <rect x="250" y="332" width="100" height="28" rx="14" fill="#F7F0E6" stroke="#9C6B4B" stroke-width="1" />
+  <text x="300" y="350" font-family="sans-serif" font-size="10" font-weight="bold" fill="#7C5237" text-anchor="middle">TYPE I &amp; III</text>
+
+  <!-- Shell emblem -->
+  <path d="M 300 375 Q 290 390 300 405 Q 310 390 300 375 Z" fill="#D4AF37" />
+</svg>

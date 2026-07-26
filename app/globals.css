@@ -1,0 +1,145 @@
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #FDFBF7;
+  --card: #FFFFFF;
+  --text-main: #111827;
+  --accent-sage: #2E5A44;
+  --font-instrument-serif: 'Instrument Serif', Georgia, serif;
+  --font-plus-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text-main);
+  font-family: var(--font-plus-jakarta);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-instrument-serif);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #FDFBF7;
+}
+::-webkit-scrollbar-thumb {
+  background: #C6DFD1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #2E5A44;
+}
+
+/* Custom shadow & elevation design tokens */
+.shadow-luxe {
+  box-shadow: 0 10px 30px -10px rgba(46, 90, 68, 0.12);
+}
+
+.shadow-luxe-lg {
+  box-shadow: 0 20px 40px -15px rgba(46, 90, 68, 0.22);
+}
+
+.shadow-luxe-card {
+  box-shadow: 0 4px 20px -4px rgba(17, 24, 39, 0.05), 0 2px 6px -2px rgba(46, 90, 68, 0.04);
+}
+
+.shadow-luxe-card-hover {
+  box-shadow: 0 16px 36px -8px rgba(46, 90, 68, 0.18), 0 4px 12px -2px rgba(17, 24, 39, 0.08);
+}
+
+/* Fluid card elevation lift */
+.card-luxe-lift {
+  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 300ms cubic-bezier(0.32, 0.72, 0, 1), border-color 300ms ease;
+}
+
+.card-luxe-lift:hover {
+  transform: translateY(-4px);
+}
+
+/* Accessible focus ring utility */
+.focus-luxe {
+  outline: none;
+}
+.focus-luxe:focus-visible {
+  outline: 2px solid #2E5A44;
+  outline-offset: 2px;
+}
+
+/* Hero entry animations */
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.hero-animate {
+  opacity: 0;
+  animation: heroFadeUp 700ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.hero-delay-1 { animation-delay: 0ms; }
+.hero-delay-2 { animation-delay: 150ms; }
+.hero-delay-3 { animation-delay: 300ms; }
+.hero-delay-4 { animation-delay: 450ms; }
+.hero-delay-5 { animation-delay: 600ms; }
+.hero-delay-6 { animation-delay: 750ms; }
+
+/* Noise overlay */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  background-image: url('/noise.svg');
+  background-repeat: repeat;
+  opacity: 0.03;
+}
+
+/* Hero ambient glow */
+.hero-glow {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(46, 90, 68, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Infinite Marquee Scroll for Announcement Bar */
+@keyframes marqueeScroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-slow {
+  display: flex;
+  width: max-content;
+  animation: marqueeScroll 35s linear infinite;
+}
+
+.animate-marquee-slow:hover {
+  animation-play-state: paused;
+}
+
+
