@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { LanguageProvider } from '@/lib/i18n/useLanguage';
 import { AuthProvider } from '@/lib/auth/AuthContext';
+import { ClientProviders } from '@/components/providers/ClientProviders';
 import { Toaster } from 'sonner';
 import { DevToolbar } from '@/components/ui/DevToolbar';
 
@@ -26,13 +27,15 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[#FDFBF7] text-[#111827] antialiased selection:bg-[#2E5A44] selection:text-white min-h-screen flex flex-col">
-        <LanguageProvider>
-          <AuthProvider>
-            {children}
-            <DevToolbar />
-            <Toaster position="bottom-right" richColors />
-          </AuthProvider>
-        </LanguageProvider>
+        <ClientProviders>
+          <LanguageProvider>
+            <AuthProvider>
+              {children}
+              <DevToolbar />
+              <Toaster position="bottom-right" richColors />
+            </AuthProvider>
+          </LanguageProvider>
+        </ClientProviders>
       </body>
     </html>
   );

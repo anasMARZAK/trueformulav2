@@ -126,21 +126,16 @@ export class MockPaymentAdapter implements IPaymentService {
           await supabase.from('order_items').insert(itemsPayload);
         }
 
-        for (const sub of newSubscriptions) {
-          await supabase.from('subscriptions').insert([
-            {
-              id: sub.id,
-              user_id: userId.includes('-') && userId.length > 20 ? userId : null,
-              product_id: sub.productId,
-              status: 'active',
-              flavor: sub.selectedFlavor || 'Default',
-              size: sub.selectedSize || 'Standard',
-              interval_days: 30,
-              next_delivery_date: sub.nextBillingDate.toISOString(),
-              discount_percentage: 20,
-              price_per_cycle: parseFloat(sub.pricePerBilling),
-            },
-          ]);
+        // Decrement product stock in Supabase & memory
+        for (const item of createdOrderItems) {
+          try {
+            const { data: prod } = await supabase.from('products').select('stock').eq('id', item.productId).single();
+            if (prod && typeof prod.stock === 'number') {
+              const newStock = Math.max(0, prod.stock - item.quantity);
+              await supabase.from('products').update({ stock: newStock }).eq('id', item.productId);
+            }
+          } catch (_) {}
+          await mockDb.decrementStock(item.productId, item.quantity);
         }
       } catch (sbErr) {
         console.warn('[MOCK PAYMENT ADAPTER] Supabase order insertion info:', sbErr);

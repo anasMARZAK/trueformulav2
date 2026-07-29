@@ -29,6 +29,7 @@ export const products = pgTable('products', {
   flavors: json('flavors').$type<string[]>().default([]).notNull(),
   sizes: json('sizes').$type<string[]>().default([]).notNull(),
   stock: integer('stock').default(100).notNull(),
+  popularityScore: integer('popularity_score').default(0).notNull(),
   isFeatured: boolean('is_featured').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
@@ -37,6 +38,8 @@ export const products = pgTable('products', {
 export const orders = pgTable('orders', {
   id: text('id').primaryKey(),
   userId: text('user_id').references(() => profiles.id).notNull(),
+  customerEmail: text('customer_email'),
+  customerName: text('customer_name'),
   status: orderStatusEnum('status').default('completed').notNull(),
   totalAmount: numeric('total_amount', { precision: 10, scale: 2 }).notNull(),
   currency: text('currency').default('USD').notNull(),
@@ -65,6 +68,7 @@ export const subscriptions = pgTable('subscriptions', {
   status: subscriptionStatusEnum('status').default('active').notNull(),
   discountPercent: integer('discount_percent').default(20).notNull(),
   pricePerBilling: numeric('price_per_billing', { precision: 10, scale: 2 }).notNull(),
+  intervalDays: integer('interval_days').default(30).notNull(),
   interval: text('interval').default('monthly').notNull(),
   nextBillingDate: timestamp('next_billing_date').notNull(),
   shippingAddress: json('shipping_address').notNull(),
@@ -89,3 +93,4 @@ export type NewOrderItem = InferInsertModel<typeof orderItems>;
 
 export type Subscription = InferSelectModel<typeof subscriptions>;
 export type NewSubscription = InferInsertModel<typeof subscriptions>;
+

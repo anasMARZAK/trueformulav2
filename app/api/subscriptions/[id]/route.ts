@@ -10,7 +10,7 @@ export async function PATCH(
   try {
     const subId = params.id;
     const body = await req.json();
-    const { status, intervalDays, interval } = body;
+    const { status, intervalDays, interval, userId } = body;
 
     const days = intervalDays || (interval ? parseInt(String(interval), 10) : undefined);
 

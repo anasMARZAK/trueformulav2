@@ -31,6 +31,7 @@ class MockDatabaseStore {
       status: 'active',
       discountPercent: 20,
       pricePerBilling: '39.99',
+      intervalDays: 30,
       interval: 'monthly',
       nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       shippingAddress: {
@@ -179,6 +180,14 @@ class MockDatabaseStore {
       }
     }
     return count;
+  }
+
+  async decrementStock(productId: string, qty: number): Promise<void> {
+    const prod = this.productsMap.get(productId);
+    if (prod) {
+      const currentStock = prod.stock ?? 100;
+      this.productsMap.set(productId, { ...prod, stock: Math.max(0, currentStock - qty) });
+    }
   }
 }
 

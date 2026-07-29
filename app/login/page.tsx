@@ -64,12 +64,29 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoSignIn = (role: 'customer' | 'admin') => {
-    switchRole(role);
-    toast.success(language === 'fr' ? 'Mode démo activé' : 'Demo Access Granted', {
-      description: role === 'admin' ? 'Signed in as Store Administrator' : 'Signed in as Member (Jane Doe)',
-    });
-    router.push(role === 'admin' ? '/admin' : '/account');
+  const handleDemoSignIn = async (role: 'customer' | 'admin') => {
+    setIsLoading(true);
+    const demoEmail = role === 'admin' ? 'admin@proteinshop.com' : 'customer@proteinshop.com';
+    const demoPassword = role === 'admin' ? 'Admin123!' : 'Customer123!';
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+
+    try {
+      await login(demoEmail, demoPassword);
+      toast.success(language === 'fr' ? 'Connexion réussie' : 'Demo Access Granted', {
+        description: role === 'admin' ? 'Signed in as Store Administrator' : 'Signed in as Customer',
+      });
+      router.push(role === 'admin' ? '/admin' : '/account');
+    } catch (err: any) {
+      // Fallback role switch if auth service offline
+      switchRole(role);
+      toast.success(language === 'fr' ? 'Mode démo activé' : 'Demo Mode Active', {
+        description: role === 'admin' ? 'Signed in as Store Administrator' : 'Signed in as Member',
+      });
+      router.push(role === 'admin' ? '/admin' : '/account');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

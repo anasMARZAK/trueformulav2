@@ -23,6 +23,7 @@ export async function fetchProductsFromSupabase(): Promise<Product[]> {
       flavors: (item.flavors as string[]) || ['Default'],
       sizes: (item.sizes as string[]) || ['Standard'],
       stock: item.stock ?? 100,
+      popularityScore: item.popularity_score ?? item.popularityScore ?? 50,
       isFeatured: item.is_featured ?? item.isFeatured ?? false,
       createdAt: item.created_at ? new Date(item.created_at) : new Date(),
     }));

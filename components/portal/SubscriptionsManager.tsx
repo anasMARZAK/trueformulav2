@@ -5,10 +5,11 @@ import Image from 'next/image';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { type Subscription } from '@/lib/db/schema';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { RefreshCw, Pause, Play, XCircle, Calendar, CreditCard, Sparkles, Package } from 'lucide-react';
 
-interface EnrichedSubscription extends Subscription {
+interface EnrichedSubscription extends Omit<Subscription, 'intervalDays'> {
   productNameEn?: string;
   productNameFr?: string;
   imageUrl?: string;
@@ -27,14 +28,16 @@ export function SubscriptionsManager() {
   const fetchSubscriptions = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/admin/subscriptions');
+      const res = await fetch(`/api/user/subscriptions?userId=${encodeURIComponent(userId)}`);
       const data = await res.json();
       if (data.success && Array.isArray(data.subscriptions)) {
-        const userSubs = data.subscriptions.filter((s: any) => s.userId === userId);
-        setSubscriptions(userSubs.length > 0 ? userSubs : data.subscriptions);
+        setSubscriptions(data.subscriptions);
+      } else {
+        setSubscriptions([]);
       }
     } catch (err) {
       console.error('Failed to fetch subscriptions:', err);
+      setSubscriptions([]);
     } finally {
       setIsLoading(false);
     }
@@ -121,6 +124,25 @@ export function SubscriptionsManager() {
         <p className="text-xs text-gray-500 max-w-md mx-auto">
           {t.portal.noSubscriptionsSubtext}
         </p>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-white border border-[#C6DFD1] rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center space-x-4 w-full">
+              <Skeleton className="w-20 h-20 rounded-2xl shrink-0" />
+              <div className="space-y-2 w-full">
+                <Skeleton className="h-6 w-1/3 rounded-lg" />
+                <Skeleton className="h-4 w-1/4 rounded-lg" />
+              </div>
+            </div>
+            <Skeleton className="h-10 w-32 rounded-xl shrink-0" />
+          </div>
+        ))}
       </div>
     );
   }

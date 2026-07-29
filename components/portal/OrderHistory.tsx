@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { ShoppingBag, RefreshCw, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface OrderItemDisplay {
   id: string;
@@ -36,14 +37,16 @@ export function OrderHistory() {
   const fetchOrders = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/admin/orders');
+      const res = await fetch(`/api/user/orders?userId=${encodeURIComponent(userId)}`);
       const data = await res.json();
       if (data.success && Array.isArray(data.orders)) {
-        const userOrders = data.orders.filter((o: any) => o.userId === userId);
-        setOrders(userOrders.length > 0 ? userOrders : data.orders);
+        setOrders(data.orders);
+      } else {
+        setOrders([]);
       }
     } catch (err) {
       console.error('Failed to fetch orders:', err);
+      setOrders([]);
     } finally {
       setIsLoading(false);
     }
@@ -55,9 +58,20 @@ export function OrderHistory() {
 
   if (isLoading) {
     return (
-      <div className="py-12 text-center text-gray-500 font-sans text-xs">
-        <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#2E5A44]" />
-        <span>{t.portal.loadingOrders}</span>
+      <div className="space-y-4">
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-white border border-[#C6DFD1] rounded-3xl p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <Skeleton className="h-6 w-36 rounded-lg" />
+              <Skeleton className="h-6 w-24 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-48 rounded-md" />
+            <div className="pt-2 flex justify-between items-center">
+              <Skeleton className="h-4 w-32 rounded-md" />
+              <Skeleton className="h-6 w-20 rounded-md" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

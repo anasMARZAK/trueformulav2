@@ -26,7 +26,7 @@ export function ProductGrid({
 
   const [internalCategory, setInternalCategory] = useState<string>(selectedCategory);
   const [internalQuery, setInternalQuery] = useState<string>(searchQuery);
-  const [sortBy, setSortBy] = useState<'featured' | 'priceAsc' | 'priceDesc' | 'nameAsc'>('featured');
+  const [sortBy, setSortBy] = useState<'featured' | 'popularity' | 'priceAsc' | 'priceDesc' | 'nameAsc'>('featured');
   const [selectedProductForModal, setSelectedProductForModal] = useState<Product | null>(null);
 
   const activeCategory = onCategoryChange ? selectedCategory : internalCategory;
@@ -89,6 +89,11 @@ export function ProductGrid({
         return true;
       })
       .sort((a, b) => {
+        if (sortBy === 'popularity') {
+          const popA = (a as any).popularityScore ?? 50;
+          const popB = (b as any).popularityScore ?? 50;
+          return popB - popA;
+        }
         if (sortBy === 'priceAsc') {
           return parseFloat(a.price) - parseFloat(b.price);
         }
@@ -180,6 +185,7 @@ export function ProductGrid({
                 className="bg-[#FDFBF7] border border-[#C6DFD1] text-xs font-semibold text-[#111827] rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2E5A44] cursor-pointer"
               >
                 <option value="featured">{t.catalog.sortOptions.featured}</option>
+                <option value="popularity">{language === 'fr' ? 'Popularité' : 'Popularity'}</option>
                 <option value="priceAsc">{t.catalog.sortOptions.priceAsc}</option>
                 <option value="priceDesc">{t.catalog.sortOptions.priceDesc}</option>
                 <option value="nameAsc">{t.catalog.sortOptions.nameAsc}</option>

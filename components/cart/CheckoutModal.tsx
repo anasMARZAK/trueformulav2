@@ -138,7 +138,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
           country: shippingData.country,
         },
         items: items.map((item) => ({
-          productId: item.id,
+          productId: item.productId || item.id,
           nameEn: item.nameEn,
           nameFr: item.nameFr,
           quantity: item.quantity,
