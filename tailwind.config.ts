@@ -43,6 +43,7 @@ const config: Config = {
         sans: ['var(--font-plus-jakarta)', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
         display: ['var(--font-instrument-serif)', 'Instrument Serif', 'Georgia', 'serif'],
         body: ['var(--font-plus-jakarta)', 'Plus Jakarta Sans', 'system-ui', 'sans-serif'],
+        mono: ['Space Mono', 'Courier New', 'monospace'],
       },
       boxShadow: {
         'luxe-sm': '0 2px 8px -2px rgba(17, 24, 39, 0.05)',

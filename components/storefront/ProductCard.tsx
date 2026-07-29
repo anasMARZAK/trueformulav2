@@ -154,7 +154,7 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
           {/* Price & Subscription Pill */}
           <div className="flex items-baseline justify-between pt-2">
             <span className="text-xl font-bold text-[#111827] font-mono">${basePrice.toFixed(2)}</span>
-            <span className="text-[11px] text-[#2E5A44] bg-[#EAF2ED] px-3 py-1 rounded-full font-bold border border-[#C6DFD1] font-sans">
+            <span className="text-[11px] text-[#2E5A44] bg-[#EAF2ED] px-3 py-1 rounded-full font-bold border border-[#C6DFD1] font-mono">
               ${subscriptionPrice.toFixed(2)}/mo
             </span>
           </div>

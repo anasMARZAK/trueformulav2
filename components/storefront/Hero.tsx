@@ -18,7 +18,7 @@ interface HeroProps {
 }
 
 export function Hero({ onExploreClick, onSubscribeClick }: HeroProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   return (
     <section
@@ -45,7 +45,15 @@ export function Hero({ onExploreClick, onSubscribeClick }: HeroProps) {
 
         {/* Hero Headline */}
         <h1 className="hero-animate hero-delay-2 font-serif text-4xl sm:text-5xl md:text-6xl lg:text-7xl text-[#111827] leading-[1.05] font-bold tracking-tight">
-          {t.hero.title}
+          {language === 'fr' ? (
+            <>
+              Votre Performance. <span className="italic font-normal text-[#2E5A44]">Sur Mesure.</span>
+            </>
+          ) : (
+            <>
+              Your Edge. <span className="italic font-normal text-[#2E5A44]">Engineered.</span>
+            </>
+          )}
         </h1>
 
         {/* Subheadline */}
