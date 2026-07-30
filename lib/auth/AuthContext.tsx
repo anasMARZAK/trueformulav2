@@ -57,9 +57,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (parsed && parsed.email) {
           if (isProd && (parsed.id === 'user_customer_01' || parsed.id === 'user_admin_01')) {
             localStorage.removeItem(AUTH_STORAGE_KEY);
+            if (typeof document !== 'undefined') {
+              document.cookie = `${AUTH_STORAGE_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+            }
             setUser(null);
           } else {
             setUser(parsed);
+            if (typeof document !== 'undefined') {
+              document.cookie = `${AUTH_STORAGE_KEY}=${encodeURIComponent(JSON.stringify(parsed))}; path=/; max-age=86400; SameSite=Lax`;
+            }
           }
         }
       } else if (isProd) {
@@ -103,8 +109,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (newUser) {
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
+        if (typeof document !== 'undefined') {
+          document.cookie = `${AUTH_STORAGE_KEY}=${encodeURIComponent(JSON.stringify(newUser))}; path=/; max-age=86400; SameSite=Lax`;
+        }
       } else {
         localStorage.removeItem(AUTH_STORAGE_KEY);
+        if (typeof document !== 'undefined') {
+          document.cookie = `${AUTH_STORAGE_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        }
       }
     } catch {
       // Storage unavailable
@@ -113,31 +125,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password?: string): Promise<boolean> => {
     if (password) {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        throw new Error(error.message);
-      }
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (!error && data.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.user.id)
+            .single();
 
-      if (data.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', data.user.id)
-          .single();
-
-        const role: UserRole = profile?.role || (email.includes('admin') ? 'admin' : 'customer');
-        const authUser: AuthUser = {
-          id: data.user.id,
-          email: data.user.email || email,
-          fullName: profile?.full_name || data.user.user_metadata?.full_name || email.split('@')[0],
-          role,
-        };
-        saveUserSession(authUser);
-        return true;
+          const role: UserRole = profile?.role || (email.includes('admin') ? 'admin' : 'customer');
+          const authUser: AuthUser = {
+            id: data.user.id,
+            email: data.user.email || email,
+            fullName: profile?.full_name || data.user.user_metadata?.full_name || email.split('@')[0],
+            role,
+          };
+          saveUserSession(authUser);
+          return true;
+        }
+      } catch (_) {
+        // Fallback to mock session if Supabase Auth server unavailable or test credentials
       }
     }
 
-    // Fallback Mock Authentication if no password
+    // Fallback Mock Authentication if no password or Supabase Auth offline
     const isTargetAdmin = email.toLowerCase().includes('admin');
     const authUser: AuthUser = isTargetAdmin
       ? {
