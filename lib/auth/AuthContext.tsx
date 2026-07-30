@@ -19,6 +19,7 @@ interface AuthContextType {
   login: (email: string, password?: string) => Promise<boolean>;
   register: (email: string, password?: string, fullName?: string) => Promise<boolean>;
   logout: () => void;
+  resetPassword: (email: string) => Promise<boolean>;
   switchRole: (role: UserRole) => void;
   isHydrated: boolean;
 }
@@ -202,6 +203,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveUserSession(null);
   };
 
+  const resetPassword = async (email: string): Promise<boolean> => {
+    if (!email || !email.includes('@')) {
+      throw new Error('Valid email address is required');
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: typeof window !== 'undefined' ? `${window.location.origin}/login` : undefined,
+    });
+    if (error) {
+      throw new Error(error.message);
+    }
+    return true;
+  };
+
   const switchRole = (newRole: UserRole) => {
     if (newRole === 'admin') {
       saveUserSession(DEFAULT_ADMIN_USER);
@@ -222,6 +236,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         login,
         register,
         logout,
+        resetPassword,
         switchRole,
         isHydrated,
       }}

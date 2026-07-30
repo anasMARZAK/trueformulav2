@@ -1,43 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPaymentAdapter } from '@/lib/payment';
-import { z } from 'zod';
 import { MOCK_PRODUCTS } from '@/lib/db/mock-data';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-
-const checkoutItemSchema = z.object({
-  productId: z.string().min(1),
-  nameEn: z.string().optional(),
-  nameFr: z.string().optional(),
-  quantity: z.number().int().positive(),
-  unitPrice: z.number().optional(),
-  purchaseType: z.enum(['one_time', 'subscription']),
-  selectedFlavor: z.string().optional(),
-  selectedSize: z.string().optional(),
-});
-
-const shippingAddressSchema = z.object({
-  fullName: z.string().min(2, 'Name is required'),
-  email: z.string().email('Valid email is required'),
-  address: z.string().min(5, 'Address is required'),
-  city: z.string().min(2, 'City is required'),
-  postalCode: z.string().min(3, 'Postal code is required'),
-  country: z.string().min(2, 'Country is required'),
-});
-
-const checkoutSchema = z.object({
-  userId: z.string().optional(),
-  userEmail: z.string().email().optional(),
-  email: z.string().email().optional(),
-  shippingAddress: shippingAddressSchema,
-  items: z.array(checkoutItemSchema).min(1, 'Cart cannot be empty'),
-  paymentMethod: z.string().optional(),
-  language: z.enum(['en', 'fr']).optional(),
-});
+import { checkoutPayloadSchema } from '@/lib/validations/schemas';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const parseResult = checkoutSchema.safeParse(body);
+    const parseResult = checkoutPayloadSchema.safeParse(body);
 
     if (!parseResult.success) {
       return NextResponse.json(
@@ -46,14 +16,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { userId, email, userEmail, shippingAddress, items, paymentMethod, language } = parseResult.data;
+    const { userId: payloadUserId, email, userEmail, shippingAddress, items, paymentMethod, language } = parseResult.data;
     const targetEmail = userEmail || email || shippingAddress.email;
+
+    // Verify token if available
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const supabase = createServerSupabaseClient();
+    let verifiedUserId = payloadUserId;
+
+    if (token) {
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (user) verifiedUserId = user.id;
+    }
+
+    const userId = verifiedUserId || payloadUserId || 'user_customer_01';
 
     // Server-Side Price Verification & Recalculation
     // 1. Fetch live products from Supabase DB or mock dataset
     let liveProducts = MOCK_PRODUCTS;
     try {
-      const supabase = createServerSupabaseClient();
       const { data } = await supabase.from('products').select('*');
       if (data && data.length > 0) {
         liveProducts = data.map((item) => ({

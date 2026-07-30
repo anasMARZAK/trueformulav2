@@ -12,24 +12,18 @@ import { MOCK_PRODUCTS } from '@/lib/db/mock-data';
 import { type Product } from '@/lib/db/schema';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useCartStore } from '@/lib/store/useCartStore';
-import { fetchProductsFromSupabase } from '@/lib/db/supabase-products';
+import { useProductsQuery } from '@/lib/hooks/useProductsQuery';
 import { ShieldCheck, RefreshCw, Award, Heart } from 'lucide-react';
 
 export default function HomePage() {
   const { t } = useLanguage();
   const openCart = useCartStore((state) => state.openCart);
-  const [products, setProducts] = useState<Product[]>(MOCK_PRODUCTS);
+  const { data: fetchedProducts, isLoading } = useProductsQuery();
+  const products = (fetchedProducts && fetchedProducts.length > 0) ? fetchedProducts : MOCK_PRODUCTS;
+
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
-
-  React.useEffect(() => {
-    fetchProductsFromSupabase().then((liveProducts) => {
-      if (liveProducts && liveProducts.length > 0) {
-        setProducts(liveProducts);
-      }
-    });
-  }, []);
 
   const handleScrollToCatalog = () => {
     const catalogEl = document.getElementById('catalog');
@@ -75,6 +69,7 @@ export default function HomePage() {
           onCategoryChange={setSelectedCategory}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
+          isLoading={isLoading}
         />
 
         {/* Why ProteinShop — Value Propositions */}

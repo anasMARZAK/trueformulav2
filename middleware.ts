@@ -24,6 +24,24 @@ export function middleware(req: NextRequest) {
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
+
+    // Role check: If session cookie exists, ensure role is admin
+    if (authSessionCookie) {
+      try {
+        const decoded = JSON.parse(decodeURIComponent(authSessionCookie));
+        if (decoded && typeof decoded === 'object' && decoded.role !== 'admin') {
+          if (isApi) {
+            return NextResponse.json(
+              { success: false, error: 'Forbidden: Admin privilege required.' },
+              { status: 403 }
+            );
+          }
+          return NextResponse.redirect(new URL('/account', req.url));
+        }
+      } catch (parseError) {
+        console.warn('[MIDDLEWARE SESSION PARSE WARN] Malformed session cookie:', parseError);
+      }
+    }
   }
 
   return NextResponse.next();

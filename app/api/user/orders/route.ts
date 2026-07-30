@@ -2,12 +2,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { mockDb } from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId') || 'user_customer_01';
-
+    const authHeader = req.headers.get('authorization');
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    
     const supabase = createServerSupabaseClient();
+    let authenticatedUserId: string | null = null;
+
+    if (token) {
+      const { data: { user } } = await supabase.auth.getUser(token);
+      if (user) authenticatedUserId = user.id;
+    }
+
+    const { searchParams } = new URL(req.url);
+    const requestedUserId = searchParams.get('userId') || 'user_customer_01';
+    
+    // Enforce ownership: if authenticated, must match user ID or allow mock/demo user when unauthenticated token
+    const userId = authenticatedUserId || requestedUserId;
+    if (authenticatedUserId && authenticatedUserId !== requestedUserId && !authenticatedUserId.includes('admin')) {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden: You cannot access another user orders.' },
+        { status: 403 }
+      );
+    }
+
     const { data: ordersData, error: ordersErr } = await supabase
       .from('orders')
       .select('*')

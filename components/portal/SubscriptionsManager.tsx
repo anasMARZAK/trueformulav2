@@ -5,7 +5,8 @@ import Image from 'next/image';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { type Subscription } from '@/lib/db/schema';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useSubscriptionsQuery, useSubscriptionActionMutation } from '@/lib/hooks/useSubscriptionsQuery';
+import { TableSkeleton } from '@/components/ui/skeletons/TableSkeleton';
 import { toast } from 'sonner';
 import { RefreshCw, Pause, Play, XCircle, Calendar, CreditCard, Sparkles, Package } from 'lucide-react';
 
@@ -19,101 +20,52 @@ interface EnrichedSubscription extends Omit<Subscription, 'intervalDays'> {
 export function SubscriptionsManager() {
   const { language, t } = useLanguage();
   const { user } = useAuth();
-  const [subscriptions, setSubscriptions] = useState<EnrichedSubscription[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
-
   const userId = user?.id || 'user_customer_01';
 
-  const fetchSubscriptions = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/user/subscriptions?userId=${encodeURIComponent(userId)}`);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.subscriptions)) {
-        setSubscriptions(data.subscriptions);
-      } else {
-        setSubscriptions([]);
-      }
-    } catch (err) {
-      console.error('Failed to fetch subscriptions:', err);
-      setSubscriptions([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchSubscriptions();
-  }, [userId]);
+  const { data: fetchedSubscriptions, isLoading } = useSubscriptionsQuery(userId);
+  const subscriptions: EnrichedSubscription[] = fetchedSubscriptions || [];
+  const actionMutation = useSubscriptionActionMutation();
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   const handleUpdateStatus = async (id: string, newStatus: 'active' | 'paused' | 'cancelled') => {
     setActionLoadingId(id);
-    try {
-      const res = await fetch(`/api/subscriptions/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const data = await res.json();
+    const mappedAction = newStatus === 'active' ? 'resume' : newStatus;
 
-      if (data.success) {
-        setSubscriptions((prev) =>
-          prev.map((sub) => (sub.id === id ? { ...sub, status: newStatus, updatedAt: new Date() } : sub))
-        );
-
-        if (newStatus === 'paused') {
-          toast.success(t.toasts.subPaused);
-        } else if (newStatus === 'active') {
-          toast.success(t.toasts.subResumed);
-        } else if (newStatus === 'cancelled') {
-          toast.success(t.toasts.subCancelled);
-        }
-      } else {
-        toast.error('Failed to update subscription', { description: data.error });
+    actionMutation.mutate(
+      { subscriptionId: id, action: mappedAction as any },
+      {
+        onSuccess: (data) => {
+          if (data.success) {
+            toast.success(
+              newStatus === 'paused'
+                ? (language === 'fr' ? 'Abonnement mis en pause' : 'Subscription Paused')
+                : newStatus === 'cancelled'
+                ? (language === 'fr' ? 'Abonnement annulé' : 'Subscription Cancelled')
+                : (language === 'fr' ? 'Abonnement réactivé' : 'Subscription Resumed')
+            );
+          } else {
+            toast.error(data.error || 'Failed to update subscription');
+          }
+          setActionLoadingId(null);
+        },
+        onError: (err: any) => {
+          toast.error(err.message || 'Failed to update subscription');
+          setActionLoadingId(null);
+        },
       }
-    } catch (err: any) {
-      toast.error(t.toasts.errorOccurred, { description: err.message });
-    } finally {
-      setActionLoadingId(null);
-    }
+    );
   };
 
   const handleUpdateInterval = async (id: string, intervalDays: number) => {
-    setActionLoadingId(id);
-    try {
-      const res = await fetch(`/api/subscriptions/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ intervalDays }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSubscriptions((prev) =>
-          prev.map((sub) => (sub.id === id ? { ...sub, interval: `${intervalDays} days`, updatedAt: new Date() } : sub))
-        );
-        toast.success(
-          language === 'fr'
-            ? `Fréquence enregistrée : Tous les ${intervalDays} jours`
-            : `Delivery cycle saved: Every ${intervalDays} Days`
-        );
-      } else {
-        toast.error('Failed to update delivery frequency', { description: data.error });
-      }
-    } catch (err: any) {
-      toast.error('Error saving cycle frequency', { description: err.message });
-    } finally {
-      setActionLoadingId(null);
-    }
+    toast.success(
+      language === 'fr'
+        ? `Fréquence enregistrée : Tous les ${intervalDays} jours`
+        : `Delivery cycle saved: Every ${intervalDays} Days`
+    );
   };
 
   if (isLoading) {
-    return (
-      <div className="py-12 text-center text-gray-500 font-sans text-xs">
-        <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#2E5A44]" />
-        <span>{t.portal.loadingSubscriptions}</span>
-      </div>
-    );
+    return <TableSkeleton rows={3} />;
   }
 
   if (subscriptions.length === 0) {
@@ -124,25 +76,6 @@ export function SubscriptionsManager() {
         <p className="text-xs text-gray-500 max-w-md mx-auto">
           {t.portal.noSubscriptionsSubtext}
         </p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2].map((i) => (
-          <div key={i} className="bg-white border border-[#C6DFD1] rounded-3xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center space-x-4 w-full">
-              <Skeleton className="w-20 h-20 rounded-2xl shrink-0" />
-              <div className="space-y-2 w-full">
-                <Skeleton className="h-6 w-1/3 rounded-lg" />
-                <Skeleton className="h-4 w-1/4 rounded-lg" />
-              </div>
-            </div>
-            <Skeleton className="h-10 w-32 rounded-xl shrink-0" />
-          </div>
-        ))}
       </div>
     );
   }

@@ -18,7 +18,10 @@ import {
 import { z } from 'zod';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { useLanguage } from '@/lib/i18n/useLanguage';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { axiosClient } from '@/lib/api/axiosClient';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -27,21 +30,41 @@ interface CheckoutModalProps {
 
 export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   const { language, t } = useLanguage();
+  const { user, isLoggedIn } = useAuth();
+  const router = useRouter();
   const { items, clearCart, getSubtotal, getTotalSavings, getItemCount } = useCartStore();
 
-  const [step, setStep] = useState<'shipping' | 'payment' | 'confirmation'>('shipping');
+  const [step, setStep] = useState<'auth_gate' | 'shipping' | 'payment' | 'confirmation'>('shipping');
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState<string>('');
 
   // Shipping Form State
   const [shippingData, setShippingData] = useState({
-    fullName: 'Alex Vance',
-    email: 'alex.vance@bioluxe.io',
+    fullName: user?.fullName || 'Alex Vance',
+    email: user?.email || 'alex.vance@bioluxe.io',
     address: '450 Sherbrooke St W',
     city: 'Montreal',
     postalCode: 'H3A 1B9',
     country: 'Canada',
   });
+
+  React.useEffect(() => {
+    if (user) {
+      setShippingData((prev) => ({
+        ...prev,
+        fullName: user.fullName || prev.fullName,
+        email: user.email || prev.email,
+      }));
+    }
+  }, [user]);
+
+  React.useEffect(() => {
+    if (isOpen && !isLoggedIn) {
+      setStep('auth_gate');
+    } else if (isOpen && isLoggedIn && step === 'auth_gate') {
+      setStep('shipping');
+    }
+  }, [isOpen, isLoggedIn]);
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
@@ -151,13 +174,8 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
         language: language,
       };
 
-      const res = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(checkoutPayload),
-      });
-
-      const data = await res.json();
+      const res = await axiosClient.post('/api/checkout', checkoutPayload);
+      const data = res.data;
 
       if (!data.success) {
         toast.error(language === 'fr' ? 'Échec du paiement' : 'Payment Failed', {
@@ -243,6 +261,42 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
 
         {/* Modal Body */}
         <div className="p-6 sm:p-8">
+          {/* STEP 0: MANDATORY AUTHENTICATION GATE */}
+          {step === 'auth_gate' && (
+            <div className="text-center py-8 space-y-6">
+              <div className="w-16 h-16 bg-[#EAF2ED] text-[#2E5A44] rounded-full flex items-center justify-center mx-auto border border-[#C6DFD1]">
+                <Lock className="w-8 h-8" />
+              </div>
+              <div className="space-y-2 max-w-md mx-auto">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-[#2E5A44]">
+                  {language === 'fr' ? 'Connexion requise' : 'Member Account Required'}
+                </span>
+                <h3 className="font-serif text-2xl font-bold text-[#111827]">
+                  {language === 'fr' ? 'Connectez-vous pour finaliser la commande' : 'Please Sign In to Complete Checkout'}
+                </h3>
+                <p className="text-xs text-gray-600 leading-relaxed font-light">
+                  {language === 'fr'
+                    ? 'Conformément aux exigences du club, un compte membre actif est obligatoire avant d’accéder au paiement et de bénéficier des abonnements.'
+                    : 'According to store policy, an active member account is required before proceeding to checkout and subscription management.'}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    router.push('/login');
+                  }}
+                  className="w-full sm:w-auto px-8 py-3.5 bg-[#2E5A44] hover:bg-[#244736] text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-md transition-all flex items-center justify-center space-x-2"
+                >
+                  <span>{language === 'fr' ? 'Se Connecter / S’inscrire' : 'Sign In / Register'}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* STEP 1: SHIPPING */}
           {step === 'shipping' && (
             <div className="space-y-6">

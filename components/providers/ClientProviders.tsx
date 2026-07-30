@@ -18,21 +18,33 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-    });
+    if (typeof window === 'undefined') return;
 
-    function raf(time: number) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
+    let lenis: Lenis | null = null;
+    let animationFrameId: number;
+
+    try {
+      lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        smoothWheel: true,
+      });
+
+      function raf(time: number) {
+        if (lenis) {
+          lenis.raf(time);
+          animationFrameId = requestAnimationFrame(raf);
+        }
+      }
+
+      animationFrameId = requestAnimationFrame(raf);
+    } catch (err) {
+      console.warn('[LENIS INIT WARN]', err);
     }
 
-    requestAnimationFrame(raf);
-
     return () => {
-      lenis.destroy();
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
+      if (lenis) lenis.destroy();
     };
   }, []);
 

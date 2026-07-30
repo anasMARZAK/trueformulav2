@@ -152,14 +152,21 @@ export const useCartStore = create<CartStore>()(
       clearCart: () => set({ items: [] }),
 
       getSubtotal: () => {
-        return get().items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+        const totalCents = get().items.reduce(
+          (sum, item) => sum + Math.round(item.unitPrice * 100) * item.quantity,
+          0
+        );
+        return totalCents / 100;
       },
 
       getTotalSavings: () => {
-        return get().items.reduce(
-          (sum, item) => sum + (item.unitPrice - item.discountedPrice) * item.quantity,
+        const savingsCents = get().items.reduce(
+          (sum, item) =>
+            sum +
+            (Math.round(item.unitPrice * 100) - Math.round(item.discountedPrice * 100)) * item.quantity,
           0
         );
+        return savingsCents / 100;
       },
 
       getItemCount: () => {

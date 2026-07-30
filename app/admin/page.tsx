@@ -9,6 +9,8 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { CheckoutModal } from '@/components/cart/CheckoutModal';
 import { useCartStore } from '@/lib/store/useCartStore';
+import { axiosClient } from '@/lib/api/axiosClient';
+import { toast } from 'sonner';
 import Link from 'next/link';
 import {
   DollarSign,
@@ -50,8 +52,8 @@ export default function AdminPage() {
   const fetchAnalytics = async () => {
     try {
       const [ordersRes, subsRes] = await Promise.all([
-        fetch('/api/admin/orders').then((r) => r.json()).catch(() => null),
-        fetch('/api/admin/subscriptions').then((r) => r.json()).catch(() => null),
+        axiosClient.get('/api/admin/orders').then((r) => r.data).catch(() => null),
+        axiosClient.get('/api/admin/subscriptions').then((r) => r.data).catch(() => null),
       ]);
 
       const ordersList = ordersRes?.success && Array.isArray(ordersRes.orders) ? ordersRes.orders : [];
@@ -76,8 +78,9 @@ export default function AdminPage() {
         mrr: mrrSum,
         totalOrdersCount: ordersList.length,
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to fetch admin analytics:', err);
+      toast.error('Failed to update dashboard analytics');
     }
   };
 

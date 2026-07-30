@@ -6,6 +6,7 @@ import { type Product } from '@/lib/db/schema';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { ProductCard } from './ProductCard';
 import { ProductDetailModal } from './ProductDetailModal';
+import { ProductCardSkeleton } from '@/components/ui/skeletons/ProductCardSkeleton';
 
 interface ProductGridProps {
   products: Product[];
@@ -13,6 +14,7 @@ interface ProductGridProps {
   onCategoryChange?: (cat: string) => void;
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
+  isLoading?: boolean;
 }
 
 export function ProductGrid({
@@ -21,6 +23,7 @@ export function ProductGrid({
   onCategoryChange,
   searchQuery = '',
   onSearchChange,
+  isLoading = false,
 }: ProductGridProps) {
   const { language, t } = useLanguage();
 
@@ -59,12 +62,20 @@ export function ProductGrid({
     { key: 'accessories', label: t.catalog.categories.accessories },
   ];
 
+  const [maxPriceFilter, setMaxPriceFilter] = useState<number>(200);
+
   // Filtering & Sorting Logic
   const filteredProducts = useMemo(() => {
     return products
       .filter((prod) => {
         // Category filter
         if (activeCategory !== 'all' && prod.category !== activeCategory) {
+          return false;
+        }
+
+        // Price range filter
+        const priceNum = parseFloat(prod.price);
+        if (maxPriceFilter > 0 && priceNum > maxPriceFilter) {
           return false;
         }
 
@@ -211,7 +222,13 @@ export function ProductGrid({
         </div>
 
         {/* Product Cards Grid */}
-        {filteredProducts.length > 0 ? (
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <ProductCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : filteredProducts.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
               <ProductCard

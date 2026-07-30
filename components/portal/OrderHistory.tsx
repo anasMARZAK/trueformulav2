@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useAuth } from '@/lib/auth/AuthContext';
-import { ShoppingBag, RefreshCw, CheckCircle2, Clock, XCircle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { ShoppingBag, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { useOrdersQuery } from '@/lib/hooks/useOrdersQuery';
+import { TableSkeleton } from '@/components/ui/skeletons/TableSkeleton';
 
 interface OrderItemDisplay {
   id: string;
@@ -28,52 +29,14 @@ interface OrderDisplay {
 export function OrderHistory() {
   const { language, t } = useLanguage();
   const { user } = useAuth();
-  const [orders, setOrders] = useState<OrderDisplay[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [trackingOrder, setTrackingOrder] = useState<OrderDisplay | null>(null);
-
   const userId = user?.id || 'user_customer_01';
 
-  const fetchOrders = async () => {
-    setIsLoading(true);
-    try {
-      const res = await fetch(`/api/user/orders?userId=${encodeURIComponent(userId)}`);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.orders)) {
-        setOrders(data.orders);
-      } else {
-        setOrders([]);
-      }
-    } catch (err) {
-      console.error('Failed to fetch orders:', err);
-      setOrders([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchOrders();
-  }, [userId]);
+  const { data: fetchedOrders, isLoading } = useOrdersQuery(userId);
+  const orders: OrderDisplay[] = fetchedOrders || [];
+  const [trackingOrder, setTrackingOrder] = useState<OrderDisplay | null>(null);
 
   if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[1, 2].map((i) => (
-          <div key={i} className="bg-white border border-[#C6DFD1] rounded-3xl p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <Skeleton className="h-6 w-36 rounded-lg" />
-              <Skeleton className="h-6 w-24 rounded-full" />
-            </div>
-            <Skeleton className="h-4 w-48 rounded-md" />
-            <div className="pt-2 flex justify-between items-center">
-              <Skeleton className="h-4 w-32 rounded-md" />
-              <Skeleton className="h-6 w-20 rounded-md" />
-            </div>
-          </div>
-        ))}
-      </div>
-    );
+    return <TableSkeleton rows={4} />;
   }
 
   if (orders.length === 0) {

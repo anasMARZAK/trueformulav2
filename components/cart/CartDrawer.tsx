@@ -33,10 +33,11 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
 
   // Free shipping threshold at $50
   const freeShippingThreshold = 50;
-  const netSubtotal = subtotal - totalSavings;
-  const isFreeShipping = netSubtotal >= freeShippingThreshold || itemCount === 0;
+  const netSubtotalCents = Math.round(subtotal * 100) - Math.round(totalSavings * 100);
+  const netSubtotal = netSubtotalCents / 100;
+  const isFreeShipping = netSubtotalCents >= freeShippingThreshold * 100 || itemCount === 0;
   const shippingCost = isFreeShipping ? 0 : 9.99;
-  const finalTotal = netSubtotal + shippingCost;
+  const finalTotal = (netSubtotalCents + (isFreeShipping ? 0 : 999)) / 100;
   const amountNeededForFreeShipping = Math.max(0, freeShippingThreshold - netSubtotal);
   const shippingProgress = Math.min(100, (netSubtotal / freeShippingThreshold) * 100);
 

@@ -24,18 +24,47 @@ import {
 
 export default function LoginPage() {
   const { t, language } = useLanguage();
-  const { login, register, switchRole } = useAuth();
+  const { login, register, resetPassword, switchRole } = useAuth();
   const openCart = useCartStore((state) => state.openCart);
   const router = useRouter();
 
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot_password'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error(language === 'fr' ? 'Veuillez saisir votre email' : 'Please enter your email address');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      await resetPassword(email);
+      toast.success(language === 'fr' ? 'Email de réinitialisation envoyé' : 'Password Reset Email Sent', {
+        description: language === 'fr'
+          ? `Si un compte existe pour ${email}, un lien de réinitialisation a été envoyé.`
+          : `If an account exists for ${email}, a password reset link has been sent.`,
+      });
+      setMode('login');
+    } catch (err: any) {
+      toast.error(language === 'fr' ? 'Erreur de réinitialisation' : 'Password Reset Error', {
+        description: err.message || (language === 'fr' ? 'Impossible d’envoyer le lien' : 'Failed to send reset link'),
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === 'forgot_password') {
+      return handleResetPassword(e);
+    }
+
     if (!email || !password) {
       toast.error(language === 'fr' ? 'Veuillez remplir tous les champs' : 'Please fill in all required fields');
       return;
@@ -228,22 +257,47 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-[#111827] uppercase tracking-wider">
-                      {language === 'fr' ? 'Mot de passe' : 'Password'}
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="w-full pl-10 pr-4 py-3 bg-white border border-[#C6DFD1] rounded-xl text-sm text-[#111827] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2E5A44]"
-                      />
+                  {mode !== 'forgot_password' && (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <label className="text-xs font-bold text-[#111827] uppercase tracking-wider">
+                          {language === 'fr' ? 'Mot de passe' : 'Password'}
+                        </label>
+                        {mode === 'login' && (
+                          <button
+                            type="button"
+                            onClick={() => setMode('forgot_password')}
+                            className="text-[11px] text-[#2E5A44] font-semibold hover:underline"
+                          >
+                            {language === 'fr' ? 'Mot de passe oublié ?' : 'Forgot Password?'}
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Lock className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="password"
+                          required
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full pl-10 pr-4 py-3 bg-white border border-[#C6DFD1] rounded-xl text-sm text-[#111827] placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2E5A44]"
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
+
+                  {mode === 'forgot_password' && (
+                    <div className="flex justify-end pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setMode('login')}
+                        className="text-[11px] text-gray-500 font-semibold hover:underline"
+                      >
+                        {language === 'fr' ? '← Retour à la connexion' : '← Back to Sign In'}
+                      </button>
+                    </div>
+                  )}
 
                   {/* Submit Button */}
                   <button
@@ -258,7 +312,9 @@ export default function LoginPage() {
                         <span>
                           {mode === 'login'
                             ? (language === 'fr' ? 'Se Connecter' : 'Sign In to Account')
-                            : (language === 'fr' ? 'Créer mon Compte' : 'Create Member Account')}
+                            : mode === 'register'
+                            ? (language === 'fr' ? 'Créer mon Compte' : 'Create Member Account')
+                            : (language === 'fr' ? 'Envoyer le lien de réinitialisation' : 'Send Reset Link')}
                         </span>
                         <ArrowRight className="w-4 h-4 text-[#C6DFD1]" />
                       </>
