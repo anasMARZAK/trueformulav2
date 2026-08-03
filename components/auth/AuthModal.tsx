@@ -50,8 +50,15 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setIsLoading(true);
     const demoEmail = targetRole === 'admin' ? 'admin@proteinshop.com' : 'customer@example.com';
     const demoPassword = targetRole === 'admin' ? 'Admin123!' : 'Customer123!';
+    const demoName = targetRole === 'admin' ? 'Store Admin' : 'Jane Doe';
+
     try {
-      await login(demoEmail, demoPassword);
+      try {
+        await login(demoEmail, demoPassword);
+      } catch (_) {
+        await register(demoEmail, demoPassword, demoName);
+      }
+
       toast.success(t.auth.authSuccess, {
         description: targetRole === 'admin' ? 'Signed in as Store Admin' : 'Signed in as Customer',
       });

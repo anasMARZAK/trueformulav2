@@ -95,13 +95,19 @@ export default function LoginPage() {
 
   const handleDemoSignIn = async (role: 'customer' | 'admin') => {
     setIsLoading(true);
-    const demoEmail = role === 'admin' ? 'admin@proteinshop.com' : 'customer@proteinshop.com';
+    const demoEmail = role === 'admin' ? 'admin@proteinshop.com' : 'customer@example.com';
     const demoPassword = role === 'admin' ? 'Admin123!' : 'Customer123!';
+    const demoName = role === 'admin' ? 'Store Admin' : 'Jane Doe';
     setEmail(demoEmail);
     setPassword(demoPassword);
 
     try {
-      await login(demoEmail, demoPassword);
+      try {
+        await login(demoEmail, demoPassword);
+      } catch (_) {
+        await register(demoEmail, demoPassword, demoName);
+      }
+
       toast.success(language === 'fr' ? 'Connexion réussie' : 'Demo Access Granted', {
         description: role === 'admin' ? 'Signed in as Store Administrator' : 'Signed in as Customer',
       });
