@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server';
+import { verifyAdminServerSession } from '@/lib/auth/verifyAdmin';
 import { mockDb } from '@/lib/db';
 import { type Product } from '@/lib/db/schema';
 import { z } from 'zod';
@@ -20,41 +21,49 @@ const productValidationSchema = z.object({
 });
 
 export async function GET() {
+  const adminCheck = await verifyAdminServerSession();
+  if (!adminCheck.authorized) return adminCheck.errorResponse!;
+
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
     const { data, error } = await supabase.from('products').select('*');
 
-    if (error || !data || data.length === 0) {
-      const mockProds = await mockDb.getProducts();
-      return NextResponse.json({ success: true, products: mockProds });
+    if (error || !data) {
+      return NextResponse.json({ success: true, products: [] });
     }
 
-    const products: Product[] = data.map((item) => ({
-      id: item.id,
-      nameEn: item.name_en || item.nameEn,
-      nameFr: item.name_fr || item.nameFr,
-      descriptionEn: item.description_en || item.descriptionEn,
-      descriptionFr: item.description_fr || item.descriptionFr,
-      price: String(item.price),
-      imageUrl: item.image_url || item.imageUrl,
-      category: item.category,
-      flavors: (item.flavors as string[]) || ['Default'],
-      sizes: (item.sizes as string[]) || ['Standard'],
-      stock: item.stock ?? 100,
-      popularityScore: item.popularity_score ?? item.popularityScore ?? 50,
-      isFeatured: item.is_featured ?? item.isFeatured ?? false,
-      createdAt: item.created_at ? new Date(item.created_at) : new Date(),
-    }));
+    const products: Product[] = data.map((item) => {
+      const priceStr = String(item.price);
+      return {
+        id: item.id,
+        nameEn: item.name_en || item.nameEn,
+        nameFr: item.name_fr || item.nameFr,
+        descriptionEn: item.description_en || item.descriptionEn,
+        descriptionFr: item.description_fr || item.descriptionFr,
+        price: priceStr,
+        priceCents: item.price_cents ?? Math.round(parseFloat(priceStr) * 100),
+        imageUrl: item.image_url || item.imageUrl,
+        category: item.category,
+        flavors: (item.flavors as string[]) || ['Default'],
+        sizes: (item.sizes as string[]) || ['Standard'],
+        stock: item.stock ?? 100,
+        popularityScore: item.popularity_score ?? item.popularityScore ?? 50,
+        isFeatured: item.is_featured ?? item.isFeatured ?? false,
+        createdAt: item.created_at ? new Date(item.created_at) : new Date(),
+      };
+    });
 
     return NextResponse.json({ success: true, products });
   } catch (error: any) {
     console.error('[API ADMIN PRODUCTS GET ERROR]', error);
-    const mockProds = await mockDb.getProducts();
-    return NextResponse.json({ success: true, products: mockProds });
+    return NextResponse.json({ success: true, products: [] });
   }
 }
 
 export async function POST(req: NextRequest) {
+  const adminCheck = await verifyAdminServerSession();
+  if (!adminCheck.authorized) return adminCheck.errorResponse!;
+
   try {
     const body = await req.json();
     const parseResult = productValidationSchema.safeParse(body);
@@ -68,7 +77,7 @@ export async function POST(req: NextRequest) {
 
     const data = parseResult.data;
     const newId = data.id || `prod_${Date.now().toString(36)}`;
-    const supabase = createServerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
 
     const dbPayload = {
       id: newId,
@@ -88,7 +97,8 @@ export async function POST(req: NextRequest) {
     const { error } = await supabase.from('products').insert([dbPayload]);
 
     if (error) {
-      console.warn('Supabase product insert warning, using mockDb fallback:', error.message);
+      console.error('Supabase product insert error:', error.message);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
     const newProduct: Product = {
@@ -98,6 +108,7 @@ export async function POST(req: NextRequest) {
       descriptionEn: data.descriptionEn,
       descriptionFr: data.descriptionFr,
       price: data.price,
+      priceCents: Math.round(parseFloat(data.price) * 100),
       imageUrl: data.imageUrl,
       category: data.category,
       flavors: data.flavors,
@@ -108,7 +119,9 @@ export async function POST(req: NextRequest) {
       createdAt: new Date(),
     };
 
-    await mockDb.createProduct(newProduct);
+    if (process.env.NODE_ENV !== 'production') {
+      await mockDb.createProduct(newProduct);
+    }
 
     return NextResponse.json({
       success: true,
@@ -122,6 +135,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  const adminCheck = await verifyAdminServerSession();
+  if (!adminCheck.authorized) return adminCheck.errorResponse!;
+
   try {
     const body = await req.json();
     if (!body.id) {
@@ -138,7 +154,7 @@ export async function PUT(req: NextRequest) {
 
     const data = parseResult.data;
     const prodId = body.id;
-    const supabase = createServerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
 
     const dbPayload = {
       name_en: data.nameEn,
@@ -157,7 +173,8 @@ export async function PUT(req: NextRequest) {
     const { error } = await supabase.from('products').update(dbPayload).eq('id', prodId);
 
     if (error) {
-      console.warn('Supabase product update warning:', error.message);
+      console.error('Supabase product update error:', error.message);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
     const updates: Partial<Product> = {
@@ -174,11 +191,12 @@ export async function PUT(req: NextRequest) {
       isFeatured: data.isFeatured,
     };
 
-    const updated = await mockDb.updateProduct(prodId, updates);
+    if (process.env.NODE_ENV !== 'production') {
+      await mockDb.updateProduct(prodId, updates);
+    }
 
     return NextResponse.json({
       success: true,
-      product: updated,
       message: 'Product updated successfully in Supabase.',
     });
   } catch (error: any) {
@@ -188,6 +206,9 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
+  const adminCheck = await verifyAdminServerSession();
+  if (!adminCheck.authorized) return adminCheck.errorResponse!;
+
   try {
     const { searchParams } = new URL(req.url);
     let id = searchParams.get('id');
@@ -201,14 +222,17 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Product ID parameter is required.' }, { status: 400 });
     }
 
-    const supabase = createServerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
     const { error } = await supabase.from('products').delete().eq('id', id);
 
     if (error) {
-      console.warn('Supabase product delete warning:', error.message);
+      console.error('Supabase product delete error:', error.message);
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    await mockDb.deleteProduct(id);
+    if (process.env.NODE_ENV !== 'production') {
+      await mockDb.deleteProduct(id);
+    }
 
     return NextResponse.json({
       success: true,

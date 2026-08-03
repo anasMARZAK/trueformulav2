@@ -1,27 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { mockDb } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-
     const supabase = createServerSupabaseClient();
-    let authenticatedUserId: string | null = null;
-
-    if (token) {
-      const { data: { user } } = await supabase.auth.getUser(token);
-      if (user) authenticatedUserId = user.id;
-    }
+    const { data: { user } } = await supabase.auth.getUser();
 
     const { searchParams } = new URL(req.url);
-    const requestedUserId = searchParams.get('userId') || 'user_customer_01';
+    const requestedUserId = searchParams.get('userId');
 
-    const userId = authenticatedUserId || requestedUserId;
-    if (authenticatedUserId && authenticatedUserId !== requestedUserId && !authenticatedUserId.includes('admin')) {
+    const userId = user?.id || requestedUserId;
+    if (!userId) {
+      return NextResponse.json({ success: true, subscriptions: [] });
+    }
+
+    if (user && requestedUserId && user.id !== requestedUserId) {
       return NextResponse.json(
         { success: false, error: 'Forbidden: You cannot access another user subscriptions.' },
         { status: 403 }
@@ -34,21 +29,7 @@ export async function GET(req: NextRequest) {
       .eq('user_id', userId);
 
     if (subsErr || !subsData || subsData.length === 0) {
-      const mockSubs = await mockDb.getSubscriptionsByUserId(userId);
-      const allProds = await mockDb.getProducts();
-      const prodsMap = new Map(allProds.map((p) => [p.id, p]));
-
-      const enrichedMock = mockSubs.map((sub) => {
-        const prod = prodsMap.get(sub.productId);
-        return {
-          ...sub,
-          productNameEn: prod?.nameEn || sub.productId,
-          productNameFr: prod?.nameFr || sub.productId,
-          imageUrl: prod?.imageUrl || '/images/true-formula-bar.jpg',
-        };
-      });
-
-      return NextResponse.json({ success: true, subscriptions: enrichedMock });
+      return NextResponse.json({ success: true, subscriptions: [] });
     }
 
     const { data: prodsData } = await supabase.from('products').select('*');
@@ -56,24 +37,34 @@ export async function GET(req: NextRequest) {
 
     const enriched = subsData.map((sub) => {
       const prod = prodsMap.get(sub.product_id);
-      const nextDate = sub.next_delivery_date ? new Date(sub.next_delivery_date) : new Date();
-      const priceStr = String(sub.price_per_cycle);
+      const nextDate = sub.next_billing_date
+        ? new Date(sub.next_billing_date)
+        : sub.next_delivery_date
+        ? new Date(sub.next_delivery_date)
+        : new Date();
+      const priceVal = sub.price_per_cycle_cents
+        ? (sub.price_per_cycle_cents / 100).toFixed(2)
+        : String(sub.price_per_cycle || sub.price_per_billing || '0.00');
+
+      const flavor = sub.selected_flavor || sub.flavor || 'Default';
+      const size = sub.selected_size || sub.size || 'Standard';
+
       return {
         id: sub.id,
         userId: sub.user_id,
         productId: sub.product_id,
         status: sub.status,
-        flavor: sub.flavor,
-        size: sub.size,
-        selectedFlavor: sub.flavor,
-        selectedSize: sub.size,
-        intervalDays: sub.interval_days,
+        flavor,
+        size,
+        selectedFlavor: flavor,
+        selectedSize: size,
+        intervalDays: sub.interval_days || 30,
         interval: `${sub.interval_days || 30} days`,
         nextDeliveryDate: nextDate,
         nextBillingDate: nextDate,
-        discountPercentage: sub.discount_percentage,
-        pricePerCycle: priceStr,
-        pricePerBilling: priceStr,
+        discountPercentage: sub.discount_percentage || 20,
+        pricePerCycle: priceVal,
+        pricePerBilling: priceVal,
         createdAt: sub.created_at ? new Date(sub.created_at) : new Date(),
         productNameEn: prod?.name_en || sub.product_id,
         productNameFr: prod?.name_fr || sub.product_id,

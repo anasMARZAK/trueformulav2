@@ -148,20 +148,30 @@ export function AdminOrdersOverview() {
                       </td>
 
                       <td className="py-4 px-6">
-                        <span
-                          className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                            order.status === 'completed'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : order.status === 'pending'
-                              ? 'bg-amber-50 text-amber-700 border border-amber-200'
-                              : 'bg-red-50 text-red-700 border border-red-200'
-                          }`}
+                        <select
+                          value={order.status}
+                          onChange={async (e) => {
+                            const newStatus = e.target.value;
+                            try {
+                              const res = await fetch('/api/admin/orders', {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ orderId: order.id, status: newStatus }),
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                fetchOrders();
+                              }
+                            } catch (_) {}
+                          }}
+                          className="bg-[#FDFBF7] border border-[#C6DFD1] rounded-lg text-[11px] font-bold text-[#2E5A44] px-2 py-1 focus:outline-none cursor-pointer"
                         >
-                          {order.status === 'completed' && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
-                          {order.status === 'pending' && <Clock className="w-3 h-3 text-amber-600" />}
-                          {order.status === 'failed' && <XCircle className="w-3 h-3 text-red-600" />}
-                          <span>{order.status}</span>
-                        </span>
+                          <option value="completed">Completed</option>
+                          <option value="pending">Pending</option>
+                          <option value="cancelled">Cancelled</option>
+                          <option value="refunded">Refunded</option>
+                          <option value="failed">Failed</option>
+                        </select>
                       </td>
                     </tr>
                   );

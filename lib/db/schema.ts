@@ -24,8 +24,9 @@ export const products = pgTable('products', {
   descriptionEn: text('description_en').notNull(),
   descriptionFr: text('description_fr').notNull(),
   price: numeric('price', { precision: 10, scale: 2 }).notNull(),
+  priceCents: integer('price_cents'),
   imageUrl: text('image_url').notNull(),
-  category: text('category').notNull(), // 'whey' | 'creatine' | 'wellness' | 'snacks' | 'plant' | 'preworkout' | 'accessories'
+  category: text('category').notNull(),
   flavors: json('flavors').$type<string[]>().default([]).notNull(),
   sizes: json('sizes').$type<string[]>().default([]).notNull(),
   stock: integer('stock').default(100).notNull(),
@@ -42,6 +43,10 @@ export const orders = pgTable('orders', {
   customerName: text('customer_name'),
   status: orderStatusEnum('status').default('completed').notNull(),
   totalAmount: numeric('total_amount', { precision: 10, scale: 2 }).notNull(),
+  totalCents: integer('total_cents'),
+  subtotalCents: integer('subtotal_cents'),
+  shippingCents: integer('shipping_cents').default(0),
+  idempotencyKey: text('idempotency_key').unique(),
   currency: text('currency').default('USD').notNull(),
   shippingAddress: json('shipping_address').notNull(),
   paymentMethod: text('payment_method').default('mock_card').notNull(),
@@ -55,6 +60,7 @@ export const orderItems = pgTable('order_items', {
   productId: text('product_id').references(() => products.id).notNull(),
   quantity: integer('quantity').notNull(),
   unitPrice: numeric('unit_price', { precision: 10, scale: 2 }).notNull(),
+  unitPriceCents: integer('unit_price_cents'),
   purchaseType: purchaseTypeEnum('purchase_type').notNull(),
   selectedFlavor: text('selected_flavor'),
   selectedSize: text('selected_size'),
@@ -67,15 +73,18 @@ export const subscriptions = pgTable('subscriptions', {
   productId: text('product_id').references(() => products.id).notNull(),
   status: subscriptionStatusEnum('status').default('active').notNull(),
   discountPercent: integer('discount_percent').default(20).notNull(),
-  pricePerBilling: numeric('price_per_billing', { precision: 10, scale: 2 }).notNull(),
+  pricePerBilling: numeric('price_per_billing', { precision: 10, scale: 2 }),
+  pricePerCycleCents: integer('price_per_cycle_cents'),
   intervalDays: integer('interval_days').default(30).notNull(),
   interval: text('interval').default('monthly').notNull(),
+  quantity: integer('quantity').default(1).notNull(),
   nextBillingDate: timestamp('next_billing_date').notNull(),
   shippingAddress: json('shipping_address').notNull(),
   selectedFlavor: text('selected_flavor'),
   selectedSize: text('selected_size'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  cancelledAt: timestamp('cancelled_at'),
 });
 
 // Type Definitions
@@ -93,4 +102,3 @@ export type NewOrderItem = InferInsertModel<typeof orderItems>;
 
 export type Subscription = InferSelectModel<typeof subscriptions>;
 export type NewSubscription = InferInsertModel<typeof subscriptions>;
-

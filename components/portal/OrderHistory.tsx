@@ -29,7 +29,7 @@ interface OrderDisplay {
 export function OrderHistory() {
   const { language, t } = useLanguage();
   const { user } = useAuth();
-  const userId = user?.id || 'user_customer_01';
+  const userId = user?.id || '00000000-0000-4000-a000-000000000001';
 
   const { data: fetchedOrders, isLoading } = useOrdersQuery(userId);
   const orders: OrderDisplay[] = fetchedOrders || [];

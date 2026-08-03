@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       if (user) verifiedUserId = user.id;
     }
 
-    const userId = verifiedUserId || payloadUserId || 'user_customer_01';
+    const userId = verifiedUserId || payloadUserId || '00000000-0000-4000-a000-000000000001';
 
     // Server-Side Price Verification & Recalculation
     // 1. Fetch live products from Supabase DB or mock dataset
@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
           descriptionEn: item.description_en || item.descriptionEn,
           descriptionFr: item.description_fr || item.descriptionFr,
           price: String(item.price),
+          priceCents: item.price_cents ?? Math.round(parseFloat(String(item.price)) * 100),
           imageUrl: item.image_url || item.imageUrl,
           category: item.category,
           flavors: (item.flavors as string[]) || ['Default'],

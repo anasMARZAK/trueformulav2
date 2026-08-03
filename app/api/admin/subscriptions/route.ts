@@ -1,28 +1,17 @@
 import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { mockDb } from '@/lib/db';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { verifyAdminServerSession } from '@/lib/auth/verifyAdmin';
 
 export async function GET() {
+  const adminCheck = await verifyAdminServerSession();
+  if (!adminCheck.authorized) return adminCheck.errorResponse!;
+
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
     const { data: subsData, error: subsErr } = await supabase.from('subscriptions').select('*');
 
-    if (subsErr || !subsData || subsData.length === 0) {
-      const mockSubs = await mockDb.getSubscriptions();
-      const allProds = await mockDb.getProducts();
-      const prodsMap = new Map(allProds.map((p) => [p.id, p]));
-
-      const enrichedMock = mockSubs.map((sub) => {
-        const prod = prodsMap.get(sub.productId);
-        return {
-          ...sub,
-          productNameEn: prod?.nameEn || sub.productId,
-          productNameFr: prod?.nameFr || sub.productId,
-          imageUrl: prod?.imageUrl || '/images/true-formula-bar.jpg',
-        };
-      });
-
-      return NextResponse.json({ success: true, subscriptions: enrichedMock });
+    if (subsErr || !subsData) {
+      return NextResponse.json({ success: true, subscriptions: [] });
     }
 
     const { data: prodsData } = await supabase.from('products').select('*');
@@ -58,7 +47,6 @@ export async function GET() {
     return NextResponse.json({ success: true, subscriptions: enriched });
   } catch (error: any) {
     console.error('[API ADMIN SUBSCRIPTIONS GET ERROR]', error);
-    const mockSubs = await mockDb.getSubscriptions();
-    return NextResponse.json({ success: true, subscriptions: mockSubs });
+    return NextResponse.json({ success: true, subscriptions: [] });
   }
 }

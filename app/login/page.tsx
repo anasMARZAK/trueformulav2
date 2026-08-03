@@ -24,7 +24,7 @@ import {
 
 export default function LoginPage() {
   const { t, language } = useLanguage();
-  const { login, register, resetPassword, switchRole } = useAuth();
+  const { login, register, resetPassword } = useAuth();
   const openCart = useCartStore((state) => state.openCart);
   const router = useRouter();
 
@@ -107,12 +107,9 @@ export default function LoginPage() {
       });
       router.push(role === 'admin' ? '/admin' : '/account');
     } catch (err: any) {
-      // Fallback role switch if auth service offline
-      switchRole(role);
-      toast.success(language === 'fr' ? 'Mode démo activé' : 'Demo Mode Active', {
-        description: role === 'admin' ? 'Signed in as Store Administrator' : 'Signed in as Member',
+      toast.error(language === 'fr' ? 'Erreur de connexion démo' : 'Demo Sign In Error', {
+        description: err.message || 'Unable to log in with demo account',
       });
-      router.push(role === 'admin' ? '/admin' : '/account');
     } finally {
       setIsLoading(false);
     }

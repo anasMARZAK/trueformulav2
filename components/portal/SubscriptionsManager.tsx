@@ -9,6 +9,8 @@ import { useSubscriptionsQuery, useSubscriptionActionMutation } from '@/lib/hook
 import { TableSkeleton } from '@/components/ui/skeletons/TableSkeleton';
 import { toast } from 'sonner';
 import { RefreshCw, Pause, Play, XCircle, Calendar, CreditCard, Sparkles, Package } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { axiosClient } from '@/lib/api/axiosClient';
 
 interface EnrichedSubscription extends Omit<Subscription, 'intervalDays'> {
   productNameEn?: string;
@@ -20,7 +22,8 @@ interface EnrichedSubscription extends Omit<Subscription, 'intervalDays'> {
 export function SubscriptionsManager() {
   const { language, t } = useLanguage();
   const { user } = useAuth();
-  const userId = user?.id || 'user_customer_01';
+  const queryClient = useQueryClient();
+  const userId = user?.id || '00000000-0000-4000-a000-000000000001';
 
   const { data: fetchedSubscriptions, isLoading } = useSubscriptionsQuery(userId);
   const subscriptions: EnrichedSubscription[] = fetchedSubscriptions || [];
@@ -57,11 +60,24 @@ export function SubscriptionsManager() {
   };
 
   const handleUpdateInterval = async (id: string, intervalDays: number) => {
-    toast.success(
-      language === 'fr'
-        ? `Fréquence enregistrée : Tous les ${intervalDays} jours`
-        : `Delivery cycle saved: Every ${intervalDays} Days`
-    );
+    setActionLoadingId(id);
+    try {
+      const res = await axiosClient.patch(`/api/subscriptions/${id}`, { intervalDays });
+      if (res.data.success) {
+        queryClient.invalidateQueries({ queryKey: ['subscriptions'] });
+        toast.success(
+          language === 'fr'
+            ? `Fréquence enregistrée : Tous les ${intervalDays} jours`
+            : `Delivery cycle saved: Every ${intervalDays} Days`
+        );
+      } else {
+        toast.error(res.data.error || 'Failed to update delivery cycle');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to update delivery cycle');
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   if (isLoading) {

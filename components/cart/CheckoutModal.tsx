@@ -68,13 +68,15 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
 
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
-  // Payment Form State (Mock Mode)
-  const [cardData, setCardData] = useState({
-    cardNumber: '4242 4242 4242 4242',
-    expiry: '12/28',
-    cvc: '123',
-    cardName: 'Alex Vance',
-  });
+  const [idempotencyKey, setIdempotencyKey] = useState<string>('');
+
+  React.useEffect(() => {
+    if (isOpen && !idempotencyKey) {
+      setIdempotencyKey(typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `IDEM-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`);
+    } else if (!isOpen) {
+      setIdempotencyKey('');
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -172,6 +174,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
         })),
         paymentMethod: 'mock_card',
         language: language,
+        idempotencyKey: idempotencyKey,
       };
 
       const res = await axiosClient.post('/api/checkout', checkoutPayload);
@@ -555,80 +558,35 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                   </div>
                 </div>
 
-                {/* Right: Mock Card Input Component */}
-                <div className="md:col-span-5 space-y-4 bg-white p-5 rounded-xl border border-[#C6DFD1] shadow-xs">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-serif text-sm font-bold text-[#111827] flex items-center space-x-1.5">
-                      <CreditCard className="w-4 h-4 text-[#2E5A44]" />
-                      <span>{t.checkout.paymentInfo}</span>
-                    </h3>
-                    <span className="bg-emerald-100 text-emerald-800 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">
-                      Test Mode
-                    </span>
-                  </div>
-
-                  <div className="bg-gradient-to-r from-[#2E5A44] to-[#1E3E2F] text-white p-4 rounded-xl shadow-md space-y-3">
-                    <div className="flex justify-between items-center text-[10px] opacity-80 uppercase tracking-widest font-mono">
-                      <span>Bio-Luxe Apothecary Card</span>
-                      <Lock className="w-3 h-3" />
-                    </div>
-                    <div className="text-sm font-mono tracking-wider font-bold">
-                      {cardData.cardNumber}
-                    </div>
-                    <div className="flex justify-between items-center text-[10px]">
-                      <div>
-                        <div className="opacity-70 text-[8px] uppercase">Cardholder</div>
-                        <div className="font-semibold">{cardData.cardName}</div>
-                      </div>
-                      <div>
-                        <div className="opacity-70 text-[8px] uppercase">Expires</div>
-                        <div className="font-semibold">{cardData.expiry}</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 pt-1">
-                    <div>
-                      <label className="text-[10px] uppercase font-bold text-gray-500">
-                        {t.checkout.cardNumber}
-                      </label>
-                      <input
-                        type="text"
-                        value={cardData.cardNumber}
-                        onChange={(e) => setCardData((prev) => ({ ...prev, cardNumber: e.target.value }))}
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono"
-                      />
+                {/* Right: Simulated Payment Mode Component */}
+                <div className="md:col-span-5 space-y-4 bg-white p-5 rounded-xl border border-[#C6DFD1] shadow-xs flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-serif text-sm font-bold text-[#111827] flex items-center space-x-1.5">
+                        <CreditCard className="w-4 h-4 text-[#2E5A44]" />
+                        <span>{t.checkout.paymentInfo}</span>
+                      </h3>
+                      <span className="bg-emerald-100 text-emerald-800 text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        Simulated Payment (Test Mode)
+                      </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-gray-500">
-                          {t.checkout.expiry}
-                        </label>
-                        <input
-                          type="text"
-                          value={cardData.expiry}
-                          onChange={(e) => setCardData((prev) => ({ ...prev, expiry: e.target.value }))}
-                          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono"
-                        />
+                    <div className="bg-[#F8FAF9] p-4 rounded-xl border border-[#C6DFD1] space-y-2">
+                      <div className="text-xs text-gray-800 font-semibold flex items-center space-x-1.5">
+                        <Lock className="w-3.5 h-3.5 text-[#2E5A44]" />
+                        <span>{language === 'fr' ? 'Paiement sécurisé simulé' : 'Simulated Secure Checkout'}</span>
                       </div>
-                      <div>
-                        <label className="text-[10px] uppercase font-bold text-gray-500">
-                          {t.checkout.cvc}
-                        </label>
-                        <input
-                          type="text"
-                          value={cardData.cvc}
-                          onChange={(e) => setCardData((prev) => ({ ...prev, cvc: e.target.value }))}
-                          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono"
-                        />
-                      </div>
+                      <p className="text-[11px] text-gray-500 leading-relaxed">
+                        {language === 'fr'
+                          ? 'En mode de démonstration, aucune information bancaire n\'est requise. Cliquez directement sur le bouton ci-dessous pour confirmer.'
+                          : 'In test mode, no real credit card input is needed. Click the button below to confirm your order.'}
+                      </p>
                     </div>
                   </div>
 
                   <div className="pt-2 text-[10px] text-gray-400 flex items-center justify-center space-x-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-[#2E5A44]" />
-                    <span>Mock mode pre-filled for 1-click test checkout</span>
+                    <span>Instant 1-Click Test Order Execution</span>
                   </div>
                 </div>
               </div>

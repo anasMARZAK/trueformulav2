@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { mockDb } from '@/lib/db';
 import { getPaymentAdapter } from '@/lib/payment';
 
 export async function GET(req: NextRequest) {
@@ -13,6 +11,26 @@ export async function POST(req: NextRequest) {
 
 async function handleRenewalCron(req: NextRequest) {
   try {
+    const authHeader = req.headers.get('authorization');
+    const expectedSecret = process.env.CRON_SECRET;
+
+    // Verify Bearer CRON_SECRET authorization header
+    if (expectedSecret) {
+      const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+      if (!token || token !== expectedSecret) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized: Invalid or missing CRON_SECRET authorization header.' },
+          { status: 401 }
+        );
+      }
+    } else if (process.env.NODE_ENV === 'production') {
+      // In production, CRON_SECRET must be configured
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: CRON_SECRET is not configured on server.' },
+        { status: 401 }
+      );
+    }
+
     const adapter = getPaymentAdapter();
     const result = await adapter.renewSubscriptions();
 

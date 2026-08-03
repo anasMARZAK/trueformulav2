@@ -17,7 +17,13 @@ export function useSubscriptionActionMutation() {
 
   return useMutation({
     mutationFn: async ({ subscriptionId, action }: { subscriptionId: string; action: 'pause' | 'resume' | 'cancel' }) => {
-      const res = await axiosClient.post('/api/subscriptions/update-status', { subscriptionId, action });
+      const statusMap = {
+        pause: 'paused',
+        resume: 'active',
+        cancel: 'cancelled',
+      } as const;
+      const status = statusMap[action];
+      const res = await axiosClient.patch(`/api/subscriptions/${subscriptionId}`, { status });
       return res.data;
     },
     onSuccess: () => {

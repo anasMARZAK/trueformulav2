@@ -13,7 +13,7 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const { t } = useLanguage();
-  const { login, register, switchRole } = useAuth();
+  const { login, register } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,12 +46,21 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
-  const handleDemoLogin = (role: 'customer' | 'admin') => {
-    switchRole(role);
-    toast.success(t.auth.authSuccess, {
-      description: role === 'admin' ? 'Signed in as Store Admin' : 'Signed in as Demo Customer (Jane Doe)',
-    });
-    onClose();
+  const handleDemoLogin = async (targetRole: 'customer' | 'admin') => {
+    setIsLoading(true);
+    const demoEmail = targetRole === 'admin' ? 'admin@proteinshop.com' : 'customer@example.com';
+    const demoPassword = targetRole === 'admin' ? 'Admin123!' : 'Customer123!';
+    try {
+      await login(demoEmail, demoPassword);
+      toast.success(t.auth.authSuccess, {
+        description: targetRole === 'admin' ? 'Signed in as Store Admin' : 'Signed in as Customer',
+      });
+      onClose();
+    } catch {
+      toast.error(t.auth.authError);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

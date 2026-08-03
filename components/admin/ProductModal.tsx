@@ -5,6 +5,7 @@ import { type Product } from '@/lib/db/schema';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { X, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
+import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 const productSchema = z.object({
@@ -42,6 +43,7 @@ const PRESET_IMAGES = [
 
 export function ProductModal({ isOpen, onClose, product, onSaveSuccess }: ProductModalProps) {
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
   const [formData, setFormData] = useState({
     nameEn: '',
     nameFr: '',
@@ -145,6 +147,7 @@ export function ProductModal({ isOpen, onClose, product, onSaveSuccess }: Produc
 
       const data = await res.json();
       if (data.success) {
+        queryClient.invalidateQueries({ queryKey: ['products'] });
         toast.success(product ? t.toasts.productUpdated : t.toasts.productCreated);
         onSaveSuccess();
         onClose();

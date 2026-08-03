@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/lib/supabase/client';
+import { useCartStore } from '@/lib/store/useCartStore';
 
 export type UserRole = 'customer' | 'admin';
 
@@ -20,32 +21,15 @@ interface AuthContextType {
   register: (email: string, password?: string, fullName?: string) => Promise<boolean>;
   logout: () => void;
   resetPassword: (email: string) => Promise<boolean>;
-  switchRole: (role: UserRole) => void;
   isHydrated: boolean;
 }
 
 const AUTH_STORAGE_KEY = 'proteinshop_auth_session';
 
-const DEFAULT_CUSTOMER_USER: AuthUser = {
-  id: 'user_customer_01',
-  email: 'customer@example.com',
-  fullName: 'Jane Doe',
-  role: 'customer',
-};
-
-const DEFAULT_ADMIN_USER: AuthUser = {
-  id: 'user_admin_01',
-  email: 'admin@proteinshop.com',
-  fullName: 'Store Admin',
-  role: 'admin',
-};
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const isProd = process.env.NODE_ENV === 'production';
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(isProd ? null : DEFAULT_CUSTOMER_USER);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
@@ -54,22 +38,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const savedAuth = localStorage.getItem(AUTH_STORAGE_KEY);
       if (savedAuth) {
         const parsed = JSON.parse(savedAuth);
-        if (parsed && parsed.email) {
-          if (isProd && (parsed.id === 'user_customer_01' || parsed.id === 'user_admin_01')) {
+        if (parsed && parsed.id && parsed.email) {
+          // Ignore legacy mock IDs
+          if (parsed.id === 'user_customer_01' || parsed.id === 'user_admin_01') {
             localStorage.removeItem(AUTH_STORAGE_KEY);
-            if (typeof document !== 'undefined') {
-              document.cookie = `${AUTH_STORAGE_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-            }
             setUser(null);
           } else {
             setUser(parsed);
-            if (typeof document !== 'undefined') {
-              document.cookie = `${AUTH_STORAGE_KEY}=${encodeURIComponent(JSON.stringify(parsed))}; path=/; max-age=86400; SameSite=Lax`;
-            }
           }
         }
-      } else if (isProd) {
-        setUser(null);
       }
     } catch {
       // Storage unavailable
@@ -86,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq('id', session.user.id)
           .single();
 
-        const role: UserRole = profile?.role || (session.user.email?.includes('admin') ? 'admin' : 'customer');
+        const role: UserRole = (profile?.role === 'admin') ? 'admin' : 'customer';
         const authUser: AuthUser = {
           id: session.user.id,
           email: session.user.email || '',
@@ -109,14 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       if (newUser) {
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
-        if (typeof document !== 'undefined') {
-          document.cookie = `${AUTH_STORAGE_KEY}=${encodeURIComponent(JSON.stringify(newUser))}; path=/; max-age=86400; SameSite=Lax`;
-        }
       } else {
         localStorage.removeItem(AUTH_STORAGE_KEY);
-        if (typeof document !== 'undefined') {
-          document.cookie = `${AUTH_STORAGE_KEY}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
-        }
       }
     } catch {
       // Storage unavailable
@@ -124,95 +95,70 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password?: string): Promise<boolean> => {
-    if (password) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-        if (!error && data.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', data.user.id)
-            .single();
-
-          const role: UserRole = profile?.role || (email.includes('admin') ? 'admin' : 'customer');
-          const authUser: AuthUser = {
-            id: data.user.id,
-            email: data.user.email || email,
-            fullName: profile?.full_name || data.user.user_metadata?.full_name || email.split('@')[0],
-            role,
-          };
-          saveUserSession(authUser);
-          return true;
-        }
-      } catch (_) {
-        // Fallback to mock session if Supabase Auth server unavailable or test credentials
-      }
+    if (!email || !password) {
+      throw new Error('Email and password are required');
+    }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) {
+      throw new Error(error?.message || 'Login failed');
     }
 
-    // Fallback Mock Authentication if no password or Supabase Auth offline
-    const isTargetAdmin = email.toLowerCase().includes('admin');
-    const authUser: AuthUser = isTargetAdmin
-      ? {
-          id: 'user_admin_01',
-          email: email || 'admin@proteinshop.com',
-          fullName: 'Store Admin',
-          role: 'admin',
-        }
-      : {
-          id: 'user_customer_01',
-          email: email || 'customer@example.com',
-          fullName: email.includes('@') ? email.split('@')[0] : 'Jane Doe',
-          role: 'customer',
-        };
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', data.user.id)
+      .single();
 
-    saveUserSession(authUser);
-    return true;
-  };
-
-  const register = async (email: string, password?: string, fullName?: string): Promise<boolean> => {
-    if (password) {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName || email.split('@')[0],
-            role: email.includes('admin') ? 'admin' : 'customer',
-          },
-        },
-      });
-
-      if (error) {
-        throw new Error(error.message);
-      }
-
-      if (data.user) {
-        const isTargetAdmin = email.toLowerCase().includes('admin');
-        const authUser: AuthUser = {
-          id: data.user.id,
-          email: data.user.email || email,
-          fullName: fullName || email.split('@')[0],
-          role: isTargetAdmin ? 'admin' : 'customer',
-        };
-        saveUserSession(authUser);
-        return true;
-      }
-    }
-
-    const isTargetAdmin = email.toLowerCase().includes('admin');
+    const role: UserRole = (profile?.role === 'admin') ? 'admin' : 'customer';
     const authUser: AuthUser = {
-      id: `user_${Date.now().toString(36)}`,
-      email,
-      fullName: fullName || email.split('@')[0],
-      role: isTargetAdmin ? 'admin' : 'customer',
+      id: data.user.id,
+      email: data.user.email || email,
+      fullName: profile?.full_name || data.user.user_metadata?.full_name || email.split('@')[0],
+      role,
     };
     saveUserSession(authUser);
     return true;
   };
 
+  const register = async (email: string, password?: string, fullName?: string): Promise<boolean> => {
+    if (!email || !password) {
+      throw new Error('Email and password are required');
+    }
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName || email.split('@')[0],
+        },
+      },
+    });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (data.user) {
+      const authUser: AuthUser = {
+        id: data.user.id,
+        email: data.user.email || email,
+        fullName: fullName || email.split('@')[0],
+        role: 'customer',
+      };
+      saveUserSession(authUser);
+      return true;
+    }
+    return false;
+  };
+
   const logout = async () => {
     await supabase.auth.signOut().catch(() => null);
     saveUserSession(null);
+    useCartStore.getState().clearCart();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('bioluxe_cart');
+      sessionStorage.clear();
+    }
   };
 
   const resetPassword = async (email: string): Promise<boolean> => {
@@ -228,14 +174,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return true;
   };
 
-  const switchRole = (newRole: UserRole) => {
-    if (newRole === 'admin') {
-      saveUserSession(DEFAULT_ADMIN_USER);
-    } else {
-      saveUserSession(DEFAULT_CUSTOMER_USER);
-    }
-  };
-
   const currentRole: UserRole = user?.role || 'customer';
   const isLoggedIn = !!user;
 
@@ -249,7 +187,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         register,
         logout,
         resetPassword,
-        switchRole,
         isHydrated,
       }}
     >

@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { db, mockDb } from '@/lib/db';
-import { subscriptions } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server';
+import { mockDb } from '@/lib/db';
+import { z } from 'zod';
+
+const updateSubscriptionSchema = z.object({
+  status: z.enum(['active', 'paused', 'cancelled']).optional(),
+  intervalDays: z.number().int().positive().optional(),
+});
 
 export async function PATCH(
   req: NextRequest,
@@ -10,52 +15,108 @@ export async function PATCH(
   try {
     const subId = params.id;
     const body = await req.json();
-    const { status, intervalDays, interval, userId } = body;
+    const parseResult = updateSubscriptionSchema.safeParse(body);
 
-    const days = intervalDays || (interval ? parseInt(String(interval), 10) : undefined);
-
-    if (status && !['active', 'paused', 'cancelled'].includes(status)) {
+    if (!parseResult.success) {
       return NextResponse.json(
-        { success: false, error: 'Invalid status. Must be active, paused, or cancelled.' },
+        { success: false, error: 'Validation failed', errors: parseResult.error.flatten().fieldErrors },
         { status: 400 }
       );
     }
 
-    // 1. Update in Supabase if client available
-    try {
-      const { createServerSupabaseClient } = await import('@/lib/supabase/server');
-      const supabase = createServerSupabaseClient();
-      const sbPayload: any = { updated_at: new Date().toISOString() };
-      if (status) sbPayload.status = status;
-      if (days && !isNaN(days)) sbPayload.interval_days = days;
-
-      await supabase.from('subscriptions').update(sbPayload).eq('id', subId);
-    } catch (sbErr) {
-      console.warn('[API SUBSCRIPTIONS PATCH] Supabase update notice:', sbErr);
+    const { status, intervalDays } = parseResult.data;
+    if (!status && !intervalDays) {
+      return NextResponse.json(
+        { success: false, error: 'Nothing to update. Provide status or intervalDays.' },
+        { status: 400 }
+      );
     }
 
-    // 2. Update Drizzle Postgres if connected
-    if (db) {
-      try {
-        const drizzlePayload: any = { updatedAt: new Date() };
-        if (status) drizzlePayload.status = status;
-        if (days) drizzlePayload.interval = `${days} days`;
-        await db
-          .update(subscriptions)
-          .set(drizzlePayload)
-          .where(eq(subscriptions.id, subId));
-      } catch (dbErr) {
-        console.warn('[API SUBSCRIPTIONS PATCH] DB update failed:', dbErr);
+    const supabase = createServerSupabaseClient();
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+
+    if (authErr || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: Authentication required.' },
+        { status: 401 }
+      );
+    }
+
+    // 1. Fetch subscription from Supabase to verify ownership
+    const { data: existingSub, error: fetchErr } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('id', subId)
+      .single();
+
+    if (fetchErr || !existingSub) {
+      return NextResponse.json(
+        { success: false, error: 'Subscription not found.' },
+        { status: 404 }
+      );
+    }
+
+    // IDOR Check: Ensure subscription belongs to session user (or service role)
+    if (existingSub.user_id !== user.id) {
+      // Check if user is admin
+      const adminDb = createAdminSupabaseClient();
+      const { data: profile } = await adminDb
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile || profile.role !== 'admin') {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden: You do not own this subscription.' },
+          { status: 403 }
+        );
       }
     }
 
-    // 3. Always update in mockDb
-    let updatedSub = null;
+    // 2. Build payload
+    const nowIso = new Date().toISOString();
+    const sbPayload: Record<string, any> = { updated_at: nowIso };
+
     if (status) {
-      updatedSub = await mockDb.updateSubscriptionStatus(subId, status as any);
+      sbPayload.status = status;
+      if (status === 'cancelled') {
+        sbPayload.cancelled_at = nowIso;
+      }
     }
-    if (days && !isNaN(days)) {
-      updatedSub = await mockDb.updateSubscriptionInterval(subId, days);
+
+    if (intervalDays) {
+      sbPayload.interval_days = intervalDays;
+      // Recompute next_billing_date if requested
+      const currentNext = existingSub.next_billing_date ? new Date(existingSub.next_billing_date) : new Date();
+      const newNext = new Date(currentNext.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+      sbPayload.next_billing_date = newNext.toISOString();
+    }
+
+    // 3. Update in Supabase
+    const { data: updatedSub, error: updateErr } = await supabase
+      .from('subscriptions')
+      .update(sbPayload)
+      .eq('id', subId)
+      .select()
+      .single();
+
+    if (updateErr) {
+      console.error('[API SUBSCRIPTIONS PATCH ERROR]', updateErr);
+      return NextResponse.json(
+        { success: false, error: `Failed to update subscription: ${updateErr.message}` },
+        { status: 500 }
+      );
+    }
+
+    // Dev mode simulation update
+    if (process.env.NODE_ENV !== 'production') {
+      if (status) {
+        await mockDb.updateSubscriptionStatus(subId, status);
+      }
+      if (intervalDays) {
+        await mockDb.updateSubscriptionInterval(subId, intervalDays);
+      }
     }
 
     return NextResponse.json({

@@ -24,7 +24,7 @@ export function Header({
   selectedCategory = 'all',
 }: HeaderProps) {
   const { language, setLanguage, t } = useLanguage();
-  const { user, role, isLoggedIn, logout, switchRole } = useAuth();
+  const { user, role, isLoggedIn, logout } = useAuth();
   const cartItemsCount = useCartStore((state) => state.getItemCount());
   const storeOpenCart = useCartStore((state) => state.openCart);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -233,37 +233,9 @@ export function Header({
                         <p className="text-xs font-bold text-gray-900 truncate">{user?.email}</p>
                       </div>
 
-                      {process.env.NODE_ENV !== 'production' && (
-                        <div className="py-1 border-b border-gray-100">
-                          <p className="px-4 py-1 text-[10px] text-gray-400 uppercase font-bold tracking-wider">
-                            {t.auth.switchRole}
-                          </p>
-                          <button
-                            onClick={() => {
-                              switchRole('customer');
-                              setIsUserMenuOpen(false);
-                            }}
-                            className={`w-full px-4 py-1.5 text-left text-xs flex items-center justify-between hover:bg-[#EAF2ED] ${
-                              role === 'customer' ? 'font-bold text-[#2E5A44]' : 'text-gray-700'
-                            }`}
-                          >
-                            <span>{t.auth.roleCustomer} (Jane Doe)</span>
-                            {role === 'customer' && <span className="text-[10px] text-emerald-600">Active</span>}
-                          </button>
-                          <button
-                            onClick={() => {
-                              switchRole('admin');
-                              setIsUserMenuOpen(false);
-                            }}
-                            className={`w-full px-4 py-1.5 text-left text-xs flex items-center justify-between hover:bg-[#EAF2ED] ${
-                              role === 'admin' ? 'font-bold text-amber-700' : 'text-gray-700'
-                            }`}
-                          >
-                            <span>{t.auth.roleAdmin} (Store Admin)</span>
-                            {role === 'admin' && <span className="text-[10px] text-amber-600">Active</span>}
-                          </button>
-                        </div>
-                      )}
+                      <div className="py-1 border-b border-gray-100 px-4 py-1.5 text-xs text-gray-500 font-mono">
+                        Role: <span className="font-bold text-[#2E5A44] uppercase">{role}</span>
+                      </div>
 
                       <div className="pt-1">
                         <Link

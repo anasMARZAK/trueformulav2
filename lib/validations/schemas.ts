@@ -43,6 +43,7 @@ export const checkoutPayloadSchema = z.object({
   items: z.array(checkoutItemSchema).min(1, 'Cart cannot be empty'),
   paymentMethod: z.string().optional(),
   language: z.enum(['en', 'fr']).optional(),
+  idempotencyKey: z.string().optional(),
 });
 
 export const productCrudSchema = z.object({

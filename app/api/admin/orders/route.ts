@@ -1,20 +1,17 @@
-import { NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { mockDb } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { createAdminSupabaseClient } from '@/lib/supabase/server';
+import { verifyAdminServerSession } from '@/lib/auth/verifyAdmin';
 
 export async function GET() {
+  const adminCheck = await verifyAdminServerSession();
+  if (!adminCheck.authorized) return adminCheck.errorResponse!;
+
   try {
-    const supabase = createServerSupabaseClient();
+    const supabase = createAdminSupabaseClient();
     const { data: ordersData, error: ordersErr } = await supabase.from('orders').select('*');
 
-    if (ordersErr || !ordersData || ordersData.length === 0) {
-      const mockOrders = await mockDb.getOrders();
-      const ordersWithItems = [];
-      for (const order of mockOrders) {
-        const items = await mockDb.getOrderItems(order.id);
-        ordersWithItems.push({ ...order, items });
-      }
-      return NextResponse.json({ success: true, orders: ordersWithItems });
+    if (ordersErr || !ordersData) {
+      return NextResponse.json({ success: true, orders: [] });
     }
 
     const { data: itemsData } = await supabase.from('order_items').select('*');
@@ -55,7 +52,36 @@ export async function GET() {
     return NextResponse.json({ success: true, orders: result });
   } catch (error: any) {
     console.error('[API ADMIN ORDERS GET ERROR]', error);
-    const mockOrders = await mockDb.getOrders();
-    return NextResponse.json({ success: true, orders: mockOrders });
+    return NextResponse.json({ success: true, orders: [] });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  const adminCheck = await verifyAdminServerSession();
+  if (!adminCheck.authorized) return adminCheck.errorResponse!;
+
+  try {
+    const body = await req.json();
+    const { orderId, status } = body;
+
+    if (!orderId || !status || !['completed', 'pending', 'failed', 'cancelled', 'refunded'].includes(status)) {
+      return NextResponse.json({ success: false, error: 'Invalid orderId or status' }, { status: 400 });
+    }
+
+    const supabase = createAdminSupabaseClient();
+    const { data: updatedOrder, error } = await supabase
+      .from('orders')
+      .update({ status })
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, order: updatedOrder });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

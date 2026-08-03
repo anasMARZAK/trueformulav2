@@ -36,12 +36,13 @@ import {
 
 export default function AdminPage() {
   const { t, language } = useLanguage();
-  const { role, switchRole, user } = useAuth();
+  const { role, user } = useAuth();
   const openCart = useCartStore((state) => state.openCart);
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'subscriptions' | 'orders'>('overview');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const [timeframe, setTimeframe] = useState<'weekly' | 'monthly'>('monthly');
   const [stats, setStats] = useState({
     totalRevenue: 0.0,
     activeSubsCount: 0,
@@ -58,6 +59,15 @@ export default function AdminPage() {
 
       const ordersList = ordersRes?.success && Array.isArray(ordersRes.orders) ? ordersRes.orders : [];
       const subsList = subsRes?.success && Array.isArray(subsRes.subscriptions) ? subsRes.subscriptions : [];
+
+      const cutoffDate = new Date();
+      if (timeframe === 'weekly') {
+        cutoffDate.setDate(cutoffDate.getDate() - 7);
+      } else {
+        cutoffDate.setDate(cutoffDate.getDate() - 30);
+      }
+
+      const filteredOrders = ordersList.filter((o: any) => new Date(o.createdAt || o.created_at) >= cutoffDate);
 
       const rev = ordersList.reduce((acc: number, o: any) => {
         return o.status === 'completed' ? acc + parseFloat(o.totalAmount || '0') : acc;
@@ -86,7 +96,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     fetchAnalytics();
-  }, [activeTab]);
+  }, [activeTab, timeframe]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#111827] flex">
@@ -219,18 +229,15 @@ export default function AdminPage() {
                 <span>Storefront Preview</span>
               </Link>
 
-              <button
-                onClick={() => switchRole(role === 'admin' ? 'customer' : 'admin')}
-                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all cursor-pointer"
-              >
+              <div className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 bg-slate-50">
                 <div className="flex items-center space-x-3">
                   <Sliders className="w-4 h-4" />
-                  <span>Switch Role</span>
+                  <span>Session Role</span>
                 </div>
                 <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1.5 py-0.5 rounded font-mono uppercase">
                   {role}
                 </span>
-              </button>
+              </div>
             </div>
           </div>
         </div>
@@ -283,8 +290,7 @@ export default function AdminPage() {
           </div>
 
           <div className="flex items-center space-x-3">
-            <button
-              onClick={() => switchRole(role === 'admin' ? 'customer' : 'admin')}
+            <div
               className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all flex items-center space-x-1.5 border ${
                 role === 'admin'
                   ? 'bg-amber-50 text-amber-900 border-amber-200'
@@ -293,7 +299,7 @@ export default function AdminPage() {
             >
               <ShieldAlert className="w-3.5 h-3.5 text-amber-600" />
               <span>Role: {role.toUpperCase()}</span>
-            </button>
+            </div>
           </div>
         </header>
 
@@ -321,10 +327,24 @@ export default function AdminPage() {
                   </div>
 
                   <div className="hidden sm:flex items-center space-x-2">
-                    <button className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-semibold rounded-lg hover:bg-slate-200 cursor-pointer">
+                    <button
+                      onClick={() => setTimeframe('weekly')}
+                      className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${
+                        timeframe === 'weekly'
+                          ? 'bg-[#2E5A44] text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
                       Weekly
                     </button>
-                    <button className="px-3 py-1 bg-[#2E5A44] text-white text-xs font-semibold rounded-lg cursor-pointer shadow-xs">
+                    <button
+                      onClick={() => setTimeframe('monthly')}
+                      className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${
+                        timeframe === 'monthly'
+                          ? 'bg-[#2E5A44] text-white shadow-xs'
+                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                      }`}
+                    >
                       Monthly
                     </button>
                   </div>

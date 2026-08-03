@@ -26,13 +26,15 @@ class MockDatabaseStore {
     // Seed default active subscription for testing fast-forward / renewal cron
     const sampleSub: Subscription = {
       id: 'sub_demo_01',
-      userId: 'user_customer_01',
+      userId: '00000000-0000-4000-a000-000000000001',
       productId: 'whey-isolate',
       status: 'active',
       discountPercent: 20,
       pricePerBilling: '39.99',
+      pricePerCycleCents: 3999,
       intervalDays: 30,
       interval: 'monthly',
+      quantity: 1,
       nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       shippingAddress: {
         fullName: 'Alex Vance',
@@ -46,6 +48,7 @@ class MockDatabaseStore {
       selectedSize: '1kg',
       createdAt: new Date('2026-01-01T00:00:00Z'),
       updatedAt: new Date('2026-01-01T00:00:00Z'),
+      cancelledAt: null,
     };
     this.subscriptionsMap.set(sampleSub.id, sampleSub);
   }
