@@ -95,7 +95,7 @@ export default function LoginPage() {
 
   const handleDemoSignIn = async (role: 'customer' | 'admin') => {
     setIsLoading(true);
-    const demoEmail = role === 'admin' ? 'admin@proteinshop.com' : 'customer@example.com';
+    const demoEmail = role === 'admin' ? 'admin@bioluxe.io' : 'customer@bioluxe.io';
     const demoPassword = role === 'admin' ? 'Admin123!' : 'Customer123!';
     const demoName = role === 'admin' ? 'Store Admin' : 'Jane Doe';
     setEmail(demoEmail);
