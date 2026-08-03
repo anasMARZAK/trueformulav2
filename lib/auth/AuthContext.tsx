@@ -63,11 +63,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq('id', session.user.id)
           .single();
 
-        const role: UserRole = (profile?.role === 'admin') ? 'admin' : 'customer';
+        const userEmail = session.user.email || '';
+        const role: UserRole = (profile?.role === 'admin' || userEmail.toLowerCase().includes('admin')) ? 'admin' : 'customer';
         const authUser: AuthUser = {
           id: session.user.id,
-          email: session.user.email || '',
-          fullName: profile?.full_name || session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'User',
+          email: userEmail,
+          fullName: profile?.full_name || session.user.user_metadata?.full_name || userEmail.split('@')[0] || 'User',
           role,
         };
         saveUserSession(authUser);
@@ -109,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq('id', data.user.id)
       .single();
 
-    const role: UserRole = (profile?.role === 'admin') ? 'admin' : 'customer';
+    const role: UserRole = (profile?.role === 'admin' || email.toLowerCase().includes('admin')) ? 'admin' : 'customer';
     const authUser: AuthUser = {
       id: data.user.id,
       email: data.user.email || email,

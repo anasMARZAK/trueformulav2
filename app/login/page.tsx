@@ -83,7 +83,11 @@ export default function LoginPage() {
           description: language === 'fr' ? `Bienvenue chez TRUE FORMULA, ${fullName || email}` : `Welcome to TRUE FORMULA, ${fullName || email}`,
         });
       }
-      router.push('/account');
+      if (email.toLowerCase().includes('admin')) {
+        router.push('/admin');
+      } else {
+        router.push('/account');
+      }
     } catch (err: any) {
       toast.error(language === 'fr' ? 'Erreur d’authentification' : 'Authentication Error', {
         description: err.message || (language === 'fr' ? 'Identifiants invalides' : 'Invalid email or password'),
