@@ -39,6 +39,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         toast.success(t.auth.authSuccess, { description: `Account created for ${email}` });
       }
       onClose();
+      window.location.href = email.toLowerCase().includes('admin') ? '/admin' : '/account';
     } catch {
       toast.error(t.auth.authError);
     } finally {
@@ -63,6 +64,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         description: targetRole === 'admin' ? 'Signed in as Store Admin' : 'Signed in as Customer',
       });
       onClose();
+      window.location.href = targetRole === 'admin' ? '/admin' : '/account';
     } catch {
       toast.error(t.auth.authError);
     } finally {

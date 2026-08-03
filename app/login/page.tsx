@@ -34,6 +34,17 @@ export default function LoginPage() {
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const getDestination = (isAdmin: boolean) => {
+    let redirectUrl: string | null = null;
+    if (typeof window !== 'undefined') {
+      redirectUrl = new URLSearchParams(window.location.search).get('redirect');
+    }
+    if (redirectUrl && redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
+      return redirectUrl;
+    }
+    return isAdmin ? '/admin' : '/account';
+  };
+
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
@@ -83,11 +94,8 @@ export default function LoginPage() {
           description: language === 'fr' ? `Bienvenue chez TRUE FORMULA, ${fullName || email}` : `Welcome to TRUE FORMULA, ${fullName || email}`,
         });
       }
-      if (email.toLowerCase().includes('admin')) {
-        router.push('/admin');
-      } else {
-        router.push('/account');
-      }
+      const isAdmin = email.toLowerCase().includes('admin');
+      window.location.href = getDestination(isAdmin);
     } catch (err: any) {
       toast.error(language === 'fr' ? 'Erreur d’authentification' : 'Authentication Error', {
         description: err.message || (language === 'fr' ? 'Identifiants invalides' : 'Invalid email or password'),
@@ -115,7 +123,7 @@ export default function LoginPage() {
       toast.success(language === 'fr' ? 'Connexion réussie' : 'Demo Access Granted', {
         description: role === 'admin' ? 'Signed in as Store Administrator' : 'Signed in as Customer',
       });
-      router.push(role === 'admin' ? '/admin' : '/account');
+      window.location.href = getDestination(role === 'admin');
     } catch (err: any) {
       toast.error(language === 'fr' ? 'Erreur de connexion démo' : 'Demo Sign In Error', {
         description: err.message || 'Unable to log in with demo account',
