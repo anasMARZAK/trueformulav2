@@ -83,6 +83,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
+      let userRole: 'customer' | 'admin' = 'customer';
       if (mode === 'login') {
         await login(email, password);
         toast.success(language === 'fr' ? 'Connexion réussie' : 'Welcome Back!', {
@@ -94,10 +95,21 @@ export default function LoginPage() {
           description: language === 'fr' ? `Bienvenue chez TRUE FORMULA, ${fullName || email}` : `Welcome to TRUE FORMULA, ${fullName || email}`,
         });
       }
-      const isAdmin = email.toLowerCase().includes('admin');
-      window.location.href = getDestination(isAdmin);
+      // Read the actual role that was set in AuthContext by login/register
+      const savedSession = localStorage.getItem('proteinshop_auth_session');
+      if (savedSession) {
+        try {
+          const parsed = JSON.parse(savedSession);
+          if (parsed?.role === 'admin') userRole = 'admin';
+        } catch {}
+      }
+      // Use router.push for proper Next.js client-side navigation
+      // This ensures middleware runs correctly with the session cookies
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      const destination = getDestination(userRole === 'admin');
+      router.push(destination);
     } catch (err: any) {
-      toast.error(language === 'fr' ? 'Erreur d’authentification' : 'Authentication Error', {
+      toast.error(language === 'fr' ? 'Erreur d\'authentification' : 'Authentication Error', {
         description: err.message || (language === 'fr' ? 'Identifiants invalides' : 'Invalid email or password'),
       });
     } finally {
@@ -105,11 +117,11 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoSignIn = async (role: 'customer' | 'admin') => {
+  const handleDemoSignIn = async (demoRole: 'customer' | 'admin') => {
     setIsLoading(true);
-    const demoEmail = role === 'admin' ? 'admin@bioluxe.io' : 'customer@bioluxe.io';
-    const demoPassword = role === 'admin' ? 'Admin123!' : 'Customer123!';
-    const demoName = role === 'admin' ? 'Store Admin' : 'Jane Doe';
+    const demoEmail = demoRole === 'admin' ? 'admin@bioluxe.io' : 'customer@bioluxe.io';
+    const demoPassword = demoRole === 'admin' ? 'Admin123!' : 'Customer123!';
+    const demoName = demoRole === 'admin' ? 'Store Admin' : 'Jane Doe';
     setEmail(demoEmail);
     setPassword(demoPassword);
 
@@ -121,9 +133,11 @@ export default function LoginPage() {
       }
 
       toast.success(language === 'fr' ? 'Connexion réussie' : 'Demo Access Granted', {
-        description: role === 'admin' ? 'Signed in as Store Administrator' : 'Signed in as Customer',
+        description: demoRole === 'admin' ? 'Signed in as Store Administrator' : 'Signed in as Customer',
       });
-      window.location.href = getDestination(role === 'admin');
+      // Use router.push for proper Next.js navigation
+      const destination = getDestination(demoRole === 'admin');
+      router.push(destination);
     } catch (err: any) {
       toast.error(language === 'fr' ? 'Erreur de connexion démo' : 'Demo Sign In Error', {
         description: err.message || 'Unable to log in with demo account',

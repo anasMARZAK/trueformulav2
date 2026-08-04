@@ -35,10 +35,11 @@ import {
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
+import { DynamicAnalyticsChart } from '@/components/admin/DynamicAnalyticsChart';
 
 export default function AdminPage() {
   const { t, language } = useLanguage();
-  const { role, user } = useAuth();
+  const { role, user, isHydrated } = useAuth();
   const router = useRouter();
   const openCart = useCartStore((state) => state.openCart);
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'subscriptions' | 'orders'>('overview');
@@ -46,13 +47,16 @@ export default function AdminPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (role && role !== 'admin') {
+    // Only check role after auth state has been hydrated from localStorage/Supabase
+    // to prevent false redirects on page refresh when role temporarily defaults to 'customer'
+    if (!isHydrated) return;
+    if (role !== 'admin') {
       toast.error('Access Denied: Admin privileges required.');
       router.push('/');
     }
-  }, [role, router]);
+  }, [role, router, isHydrated]);
 
-  const [timeframe, setTimeframe] = useState<'weekly' | 'monthly'>('monthly');
+  const [rawOrders, setRawOrders] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalRevenue: 0.0,
     activeSubsCount: 0,
@@ -63,24 +67,20 @@ export default function AdminPage() {
   const fetchAnalytics = async () => {
     try {
       const [ordersRes, subsRes] = await Promise.all([
-        axiosClient.get('/api/admin/orders').then((r) => r.data).catch(() => null),
-        axiosClient.get('/api/admin/subscriptions').then((r) => r.data).catch(() => null),
+        fetch('/api/admin/orders').then((r) => r.json()).catch(() => null),
+        fetch('/api/admin/subscriptions').then((r) => r.json()).catch(() => null),
       ]);
 
       const ordersList = ordersRes?.success && Array.isArray(ordersRes.orders) ? ordersRes.orders : [];
       const subsList = subsRes?.success && Array.isArray(subsRes.subscriptions) ? subsRes.subscriptions : [];
 
-      const cutoffDate = new Date();
-      if (timeframe === 'weekly') {
-        cutoffDate.setDate(cutoffDate.getDate() - 7);
-      } else {
-        cutoffDate.setDate(cutoffDate.getDate() - 30);
-      }
-
-      const filteredOrders = ordersList.filter((o: any) => new Date(o.createdAt || o.created_at) >= cutoffDate);
+      setRawOrders(ordersList);
 
       const rev = ordersList.reduce((acc: number, o: any) => {
-        return o.status === 'completed' ? acc + parseFloat(o.totalAmount || '0') : acc;
+        const isCompleted = o.status === 'completed' || o.status === 'delivered' || o.status === 'processing';
+        // Handle both camelCase (totalAmount) and snake_case (total_amount) field names
+        const amount = parseFloat(String(o.totalAmount || o.total_amount || '0'));
+        return isCompleted ? acc + amount : acc;
       }, 0);
 
       let activeCount = 0;
@@ -88,7 +88,7 @@ export default function AdminPage() {
       subsList.forEach((s: any) => {
         if (s.status === 'active') {
           activeCount++;
-          mrrSum += parseFloat(s.pricePerBilling || '0');
+          mrrSum += parseFloat(String(s.pricePerBilling || s.pricePerCycle || s.price_per_cycle || '0'));
         }
       });
 
@@ -100,13 +100,14 @@ export default function AdminPage() {
       });
     } catch (err: any) {
       console.error('Failed to fetch admin analytics:', err);
-      toast.error('Failed to update dashboard analytics');
     }
   };
 
   useEffect(() => {
-    fetchAnalytics();
-  }, [activeTab, timeframe]);
+    if (isHydrated && role === 'admin') {
+      fetchAnalytics();
+    }
+  }, [isHydrated, role]);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-[#111827] flex">
@@ -315,98 +316,11 @@ export default function AdminPage() {
 
         {/* Dashboard Main Workspace Content */}
         <main className="p-6 sm:p-8 space-y-8 max-w-7xl mx-auto w-full">
-          {/* Top Analytics Charts & Stat Grid (Matches Screenshot Layout) */}
+          {/* Top Dynamic Analytics Chart & Stat Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Main Interactive Smooth Area Chart (2 Cols) */}
-            <div className="lg:col-span-2 bg-white border border-slate-200 rounded-3xl p-6 shadow-xs relative overflow-hidden flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                      Product Views & Sales Dynamics
-                    </span>
-                    <div className="flex items-baseline space-x-3 mt-1">
-                      <span className="font-serif text-3xl font-bold text-slate-900">
-                        ${stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </span>
-                      <span className="inline-flex items-center space-x-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                        <TrendingUp className="w-3 h-3" />
-                        <span>+108% VS PREV. WEEK</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="hidden sm:flex items-center space-x-2">
-                    <button
-                      onClick={() => setTimeframe('weekly')}
-                      className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${
-                        timeframe === 'weekly'
-                          ? 'bg-[#2E5A44] text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      Weekly
-                    </button>
-                    <button
-                      onClick={() => setTimeframe('monthly')}
-                      className={`px-3 py-1 text-xs font-semibold rounded-lg cursor-pointer transition-colors ${
-                        timeframe === 'monthly'
-                          ? 'bg-[#2E5A44] text-white shadow-xs'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                    >
-                      Monthly
-                    </button>
-                  </div>
-                </div>
-
-                {/* SVG Smooth Area Chart */}
-                <div className="w-full h-48 pt-4 relative">
-                  <svg className="w-full h-full overflow-visible" viewBox="0 0 500 150" preserveAspectRatio="none">
-                    <defs>
-                      <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#2E5A44" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="#2E5A44" stopOpacity="0.0" />
-                      </linearGradient>
-                    </defs>
-
-                    {/* Grid horizontal lines */}
-                    <line x1="0" y1="30" x2="500" y2="30" stroke="#E2E8F0" strokeDasharray="4 4" />
-                    <line x1="0" y1="75" x2="500" y2="75" stroke="#E2E8F0" strokeDasharray="4 4" />
-                    <line x1="0" y1="120" x2="500" y2="120" stroke="#E2E8F0" strokeDasharray="4 4" />
-
-                    {/* Filled Gradient Area */}
-                    <path
-                      d="M 0 110 C 70 80, 140 130, 210 60 C 280 100, 350 70, 420 50 L 500 70 L 500 150 L 0 150 Z"
-                      fill="url(#areaGradient)"
-                    />
-
-                    {/* Smooth Spline Curve Line */}
-                    <path
-                      d="M 0 110 C 70 80, 140 130, 210 60 C 280 100, 350 70, 420 50 L 500 70"
-                      fill="none"
-                      stroke="#2E5A44"
-                      strokeWidth="3"
-                      strokeLinecap="round"
-                    />
-
-                    {/* Interactive Active Point Overlay */}
-                    <circle cx="210" cy="60" r="5" fill="#2E5A44" stroke="#ffffff" strokeWidth="2" />
-                    <circle cx="420" cy="50" r="5" fill="#2E5A44" stroke="#ffffff" strokeWidth="2" />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Chart X-Axis Labels */}
-              <div className="flex justify-between items-center text-[11px] font-semibold text-slate-400 pt-2 border-t border-slate-100">
-                <span>1 Mon</span>
-                <span>2 Tue</span>
-                <span>3 Wed</span>
-                <span>4 Thu</span>
-                <span>5 Fri</span>
-                <span>6 Sat</span>
-                <span>7 Sun</span>
-              </div>
+            {/* Dynamic Real-Time Bezier Chart (2 Cols) */}
+            <div className="lg:col-span-2">
+              <DynamicAnalyticsChart orders={rawOrders} />
             </div>
 
             {/* Side KPI Stat Cards (Matching Screenshot Right Side) */}
