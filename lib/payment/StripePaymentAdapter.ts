@@ -16,7 +16,7 @@ export class StripePaymentAdapter implements IPaymentService {
     }
 
     try {
-      const orderId = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const orderId = crypto.randomUUID();
       let subtotalCents = 0;
 
       const hasSubscription = request.items.some((i) => i.purchaseType === 'subscription');
@@ -85,7 +85,7 @@ export class StripePaymentAdapter implements IPaymentService {
     }
 
     try {
-      const subId = `SUB-STRIPE-${Date.now().toString(36).toUpperCase()}`;
+      const subId = crypto.randomUUID();
       const now = new Date();
       const nextBillingDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 

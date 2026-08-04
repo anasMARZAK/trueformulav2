@@ -28,7 +28,7 @@ export class MockPaymentAdapter implements IPaymentService {
 
     try {
       // 2. Generate unique order ID
-      const orderId = `ORD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+      const orderId = crypto.randomUUID();
 
       // 3. Calculate Financials
       let subtotal = 0;
@@ -57,7 +57,7 @@ export class MockPaymentAdapter implements IPaymentService {
 
       // 5. Build Order Items
       const createdOrderItems = request.items.map((item, index) => ({
-        id: `ITEM-${orderId}-${index + 1}`,
+        id: crypto.randomUUID(),
         orderId: orderId,
         productId: item.productId,
         quantity: item.quantity,
@@ -74,7 +74,7 @@ export class MockPaymentAdapter implements IPaymentService {
       const nextBillingDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // NOW + 30 days
 
       const newSubscriptions = subscriptionItems.map((item, index) => {
-        const subId = `SUB-${Date.now().toString(36).toUpperCase()}-${index + 1}`;
+        const subId = crypto.randomUUID();
         createdSubscriptionIds.push(subId);
 
         return {
@@ -332,7 +332,7 @@ export class MockPaymentAdapter implements IPaymentService {
 
       for (const sub of activeDueSubs) {
         try {
-          const orderId = `ORD-RENEW-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+          const orderId = crypto.randomUUID();
           const priceCents = sub.price_per_cycle_cents || Math.round(parseFloat(sub.price_per_billing || '0') * 100);
           const priceAmount = (priceCents / 100).toFixed(2);
           const prod = prodsMap.get(sub.product_id);
