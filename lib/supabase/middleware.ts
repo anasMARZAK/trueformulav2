@@ -33,13 +33,37 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Protect /admin, /api/admin, /account, /api/user routes
-  if (
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/api/admin') ||
-    pathname.startsWith('/account') ||
-    pathname.startsWith('/api/user')
-  ) {
+  // Protect /admin and /api/admin routes (Strict Admin Role Required)
+  if (pathname.startsWith('/admin') || pathname.startsWith('/api/admin')) {
+    if (!user) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { success: false, error: 'Unauthorized: Valid authentication required.' },
+          { status: 401 }
+        );
+      }
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // Verify user role in database profiles
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin') {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { success: false, error: 'Forbidden: Admin privileges required.' },
+          { status: 403 }
+        );
+      }
+      return NextResponse.redirect(new URL('/', request.url));
+    }
+  } else if (pathname.startsWith('/account') || pathname.startsWith('/api/user')) {
     if (!user) {
       if (pathname.startsWith('/api/')) {
         return NextResponse.json(

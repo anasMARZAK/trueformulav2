@@ -34,13 +34,23 @@ import {
   X,
 } from 'lucide-react';
 
+import { useRouter } from 'next/navigation';
+
 export default function AdminPage() {
   const { t, language } = useLanguage();
   const { role, user } = useAuth();
+  const router = useRouter();
   const openCart = useCartStore((state) => state.openCart);
   const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'subscriptions' | 'orders'>('overview');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (role && role !== 'admin') {
+      toast.error('Access Denied: Admin privileges required.');
+      router.push('/');
+    }
+  }, [role, router]);
 
   const [timeframe, setTimeframe] = useState<'weekly' | 'monthly'>('monthly');
   const [stats, setStats] = useState({
