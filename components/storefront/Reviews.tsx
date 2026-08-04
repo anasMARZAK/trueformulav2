@@ -145,7 +145,8 @@ export function Reviews() {
 
   useEffect(() => {
     const updateCount = () => {
-      setVisibleCount(window.innerWidth >= 1024 ? 3 : 1);
+      const w = window.innerWidth;
+      setVisibleCount(w >= 1024 ? 3 : w >= 640 ? 2 : 1);
     };
     updateCount();
     window.addEventListener('resize', updateCount);
@@ -153,6 +154,12 @@ export function Reviews() {
   }, []);
 
   const maxIndex = Math.max(0, reviewsList.length - visibleCount);
+
+  // Resizing to a wider breakpoint shows more cards at once, which shrinks maxIndex;
+  // without this the carousel can be parked past the end and render blank space.
+  useEffect(() => {
+    setActiveIndex((prev) => Math.min(prev, maxIndex));
+  }, [maxIndex]);
 
   const goNext = useCallback(() => {
     setActiveIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
@@ -243,7 +250,7 @@ export function Reviews() {
 
                         {/* Product purchased */}
                         <div className="text-[11px] text-[#2E5A44] bg-[#EAF2ED]/60 inline-block px-2.5 py-1 rounded-md font-semibold">
-                          Purchased: {product}
+                          {t.reviews.purchasedLabel}: {product}
                         </div>
                       </div>
 
@@ -270,26 +277,27 @@ export function Reviews() {
           {/* Navigation Arrows */}
           <button
             onClick={goPrev}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 lg:-translate-x-5 w-10 h-10 bg-white border border-[#E5E2D9] rounded-full shadow-md flex items-center justify-center text-[#111827] hover:bg-[#EAF2ED] hover:border-[#2E5A44] transition-all z-20 cursor-pointer"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 lg:-translate-x-5 w-10 h-10 bg-white border border-[#E5E2D9] rounded-full shadow-md hidden sm:flex items-center justify-center text-[#111827] hover:bg-[#EAF2ED] hover:border-[#2E5A44] transition-all z-20 cursor-pointer focus-luxe"
             aria-label="Previous review"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={goNext}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 lg:translate-x-5 w-10 h-10 bg-white border border-[#E5E2D9] rounded-full shadow-md flex items-center justify-center text-[#111827] hover:bg-[#EAF2ED] hover:border-[#2E5A44] transition-all z-20 cursor-pointer"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 lg:translate-x-5 w-10 h-10 bg-white border border-[#E5E2D9] rounded-full shadow-md hidden sm:flex items-center justify-center text-[#111827] hover:bg-[#EAF2ED] hover:border-[#2E5A44] transition-all z-20 cursor-pointer focus-luxe"
             aria-label="Next review"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Dot Indicators */}
+        {/* Dot Indicators — one per reachable slide position, derived from the
+            loaded list rather than the hardcoded fallback array. */}
         <div className="flex justify-center items-center space-x-2 mt-10">
-          {REVIEWS.map((_, idx) => (
+          {Array.from({ length: maxIndex + 1 }).map((_, idx) => (
             <button
               key={idx}
-              onClick={() => setActiveIndex(Math.min(idx, maxIndex))}
+              onClick={() => setActiveIndex(idx)}
               className={`rounded-full transition-all duration-300 cursor-pointer ${
                 idx === activeIndex
                   ? 'w-8 h-2.5 bg-[#2E5A44]'
@@ -301,26 +309,34 @@ export function Reviews() {
         </div>
 
         {/* Aggregate Stats Bar */}
-        <div className="mt-14 bg-white rounded-2xl border border-[#E5E2D9] p-6 sm:p-8 shadow-sm">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center divide-x divide-[#E5E2D9] [&>*:first-child]:border-l-0">
-            <div className="space-y-1">
-              <p className="font-serif text-2xl sm:text-3xl font-bold text-[#111827]">4.9</p>
+        <div className="mt-14 bg-white rounded-3xl border border-[#E5E2D9] p-6 sm:p-8 shadow-luxe-card">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-8 gap-x-6 text-center sm:divide-x sm:divide-[#E5E2D9]">
+            <div className="space-y-1.5">
+              <p className="font-mono text-3xl sm:text-4xl font-bold text-[#111827] tracking-tight">4.9</p>
               <div className="flex justify-center">
                 <StarRating rating={5} />
               </div>
-              <p className="text-[11px] text-gray-500 uppercase tracking-wide font-semibold">Average Rating</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-[0.14em] font-semibold pt-0.5">
+                {t.reviews.stats.rating}
+              </p>
             </div>
-            <div className="space-y-1">
-              <p className="font-serif text-2xl sm:text-3xl font-bold text-[#111827]">2,400+</p>
-              <p className="text-[11px] text-gray-500 uppercase tracking-wide font-semibold">Verified Reviews</p>
+            <div className="space-y-1.5">
+              <p className="font-mono text-3xl sm:text-4xl font-bold text-[#111827] tracking-tight">2,400+</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-[0.14em] font-semibold pt-0.5">
+                {t.reviews.stats.reviews}
+              </p>
             </div>
-            <div className="space-y-1">
-              <p className="font-serif text-2xl sm:text-3xl font-bold text-[#111827]">98%</p>
-              <p className="text-[11px] text-gray-500 uppercase tracking-wide font-semibold">Would Recommend</p>
+            <div className="space-y-1.5">
+              <p className="font-mono text-3xl sm:text-4xl font-bold text-[#111827] tracking-tight">98%</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-[0.14em] font-semibold pt-0.5">
+                {t.reviews.stats.recommend}
+              </p>
             </div>
-            <div className="space-y-1">
-              <p className="font-serif text-2xl sm:text-3xl font-bold text-[#111827]">3,100+</p>
-              <p className="text-[11px] text-gray-500 uppercase tracking-wide font-semibold">Active Subscribers</p>
+            <div className="space-y-1.5">
+              <p className="font-mono text-3xl sm:text-4xl font-bold text-[#111827] tracking-tight">3,100+</p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-[0.14em] font-semibold pt-0.5">
+                {t.reviews.stats.subscribers}
+              </p>
             </div>
           </div>
         </div>

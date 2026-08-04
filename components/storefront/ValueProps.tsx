@@ -1,115 +1,67 @@
 'use client';
 
 import React from 'react';
-import { Beaker, ShieldCheck, Leaf, RefreshCw, ArrowRight } from 'lucide-react';
+import { Beaker, ShieldCheck, Leaf, RefreshCw } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/useLanguage';
-
-interface ValuePropsProps {
-  onExploreClick?: () => void;
-}
+import { Reveal } from '@/components/ui/Reveal';
 
 const PROPS_DATA = [
-  {
-    icon: Beaker,
-    titleKey: 'performanceTitle' as const,
-    descKey: 'performanceDesc' as const,
-    accent: '#2E5A44',
-    bgAccent: '#EAF2ED',
-  },
-  {
-    icon: ShieldCheck,
-    titleKey: 'purityTitle' as const,
-    descKey: 'purityDesc' as const,
-    accent: '#1E3A5F',
-    bgAccent: '#E8EFF7',
-  },
-  {
-    icon: Leaf,
-    titleKey: 'sustainableTitle' as const,
-    descKey: 'sustainableDesc' as const,
-    accent: '#5C6B2F',
-    bgAccent: '#F0F2E8',
-  },
-  {
-    icon: RefreshCw,
-    titleKey: 'savingsTitle' as const,
-    descKey: 'savingsDesc' as const,
-    accent: '#7C4D1E',
-    bgAccent: '#FBF2E8',
-  },
-];
+  { icon: Beaker, titleKey: 'performanceTitle', descKey: 'performanceDesc' },
+  { icon: ShieldCheck, titleKey: 'purityTitle', descKey: 'purityDesc' },
+  { icon: Leaf, titleKey: 'sustainableTitle', descKey: 'sustainableDesc' },
+  { icon: RefreshCw, titleKey: 'savingsTitle', descKey: 'savingsDesc' },
+] as const;
 
-export function ValueProps({ onExploreClick }: ValuePropsProps) {
+export function ValueProps() {
   const { t } = useLanguage();
 
   return (
-    <section className="py-20 sm:py-28 bg-[#FDFBF7] relative overflow-hidden">
-      {/* Soft background ornament */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#F5F0E4]/40 rounded-full blur-3xl" />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        {/* Section Header */}
-        <div className="text-center max-w-2xl mx-auto mb-16 space-y-4">
-          <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-[#C6DFD1] shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#2E5A44]" />
-            <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-[#2E5A44] font-sans">
-              {t.valueProps.badge}
-            </span>
+    <section className="py-20 sm:py-28 bg-[#F5F0E4]/50 border-y border-[#E5E2D9]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Section header, left-aligned to match the catalog above it */}
+        <Reveal>
+          <div className="max-w-2xl">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="w-10 h-px bg-[#2E5A44]/40" />
+              <span className="text-[11px] uppercase tracking-[0.28em] font-semibold text-[#2E5A44] font-sans">
+                {t.valueProps.badge}
+              </span>
+            </div>
+            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#111827] font-bold tracking-tight text-balance">
+              {t.valueProps.title}
+            </h2>
+            <p className="mt-4 text-[#4B5563] font-sans font-light text-base leading-relaxed text-pretty">
+              {t.valueProps.subtitle}
+            </p>
           </div>
-          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#111827] font-bold tracking-tight">
-            {t.valueProps.title}
-          </h2>
-          <p className="text-[#4B5563] font-sans font-light text-base leading-relaxed">
-            {t.valueProps.subtitle}
-          </p>
-        </div>
+        </Reveal>
 
-        {/* Value Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-5">
+        {/* Standards, set as a rule-separated editorial grid rather than floating cards */}
+        <div className="mt-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-10">
           {PROPS_DATA.map((prop, idx) => {
             const Icon = prop.icon;
             return (
-              <div
-                key={idx}
-                className="group bg-[#FDFBF7] rounded-2xl border border-[#E5E2D9] p-7 sm:p-8 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 hover:border-[#C6DFD1] relative overflow-hidden"
-              >
-                {/* Decorative corner accent */}
-                <div
-                  className="absolute top-0 right-0 w-24 h-24 rounded-bl-[4rem] opacity-[0.06] group-hover:opacity-[0.12] transition-opacity duration-500"
-                  style={{ backgroundColor: prop.accent }}
-                />
-
-                {/* Icon */}
-                <div
-                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110"
-                  style={{ backgroundColor: prop.bgAccent }}
-                >
-                  <Icon className="w-5.5 h-5.5" style={{ color: prop.accent }} />
+              <Reveal key={prop.titleKey} delay={idx * 90}>
+                <div className="group h-full pt-6 border-t border-[#2E5A44]/20">
+                  <div className="flex items-center justify-between mb-5">
+                    <Icon
+                      className="w-6 h-6 text-[#2E5A44] transition-transform duration-500 ease-luxe group-hover:-translate-y-0.5"
+                      strokeWidth={1.5}
+                    />
+                    <span className="font-mono text-[10px] text-[#9CA3AF] tracking-[0.15em]">
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <h3 className="font-serif text-xl font-bold text-[#111827] mb-2.5 leading-snug text-balance">
+                    {t.valueProps.props[prop.titleKey]}
+                  </h3>
+                  <p className="text-[13px] text-[#6B7280] leading-relaxed font-sans text-pretty">
+                    {t.valueProps.props[prop.descKey]}
+                  </p>
                 </div>
-
-                {/* Content */}
-                <h3 className="font-serif text-lg font-bold text-[#111827] mb-2 leading-snug">
-                  {t.valueProps.props[prop.titleKey]}
-                </h3>
-                <p className="text-[13px] text-gray-500 leading-relaxed font-sans">
-                  {t.valueProps.props[prop.descKey]}
-                </p>
-              </div>
+              </Reveal>
             );
           })}
-        </div>
-
-        {/* Bottom CTA */}
-        <div className="text-center mt-12">
-          <button
-            onClick={onExploreClick}
-            className="inline-flex items-center space-x-2 px-6 py-3 bg-[#111827] text-white text-sm font-medium rounded-lg hover:bg-[#1f2937] transition-all shadow-md hover:shadow-lg group cursor-pointer"
-          >
-            <span>{t.valueProps.exploreCta}</span>
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </button>
         </div>
       </div>
     </section>

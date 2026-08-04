@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import { TrendingUp, TrendingDown, Download, Sparkles } from 'lucide-react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { TrendingUp, TrendingDown, Download, Minus, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface OrderRecord {
@@ -13,237 +13,264 @@ interface OrderRecord {
 
 interface DynamicAnalyticsChartProps {
   orders: OrderRecord[];
+  isLoading?: boolean;
 }
 
-export function DynamicAnalyticsChart({ orders }: DynamicAnalyticsChartProps) {
-  const [timeframe, setTimeframe] = useState<'1W' | '1M' | '3M' | '6M' | '1Y'>('1M');
-  const [hoveredPoint, setHoveredPoint] = useState<{
-    dateLabel: string;
-    revenue: number;
-    count: number;
-    growth: number;
-    x: number;
-    y: number;
-  } | null>(null);
+/**
+ * The orders table only ever holds these four states (order_status enum).
+ * Revenue recognises `completed`; `pending` is surfaced separately so orders that
+ * exist but have not settled are visible rather than silently dropped.
+ */
+const REVENUE_STATUS = 'completed';
+const PENDING_STATUS = 'pending';
 
-  // Compute Daily/Monthly Aggregates dynamically from real DB orders
-  const { chartPoints, totalRevenue, periodGrowth, avgRevenue, yTicks } = useMemo(() => {
-    let daysCount = 30;
-    if (timeframe === '1W') daysCount = 7;
-    if (timeframe === '1M') daysCount = 30;
-    if (timeframe === '3M') daysCount = 90;
-    if (timeframe === '6M') daysCount = 180;
-    if (timeframe === '1Y') daysCount = 365;
+const TIMEFRAMES = {
+  '1W': { days: 7, bucketDays: 1 },
+  '1M': { days: 30, bucketDays: 1 },
+  '3M': { days: 90, bucketDays: 7 },
+  '6M': { days: 180, bucketDays: 15 },
+  '1Y': { days: 365, bucketDays: 30 },
+} as const;
 
-    const now = new Date();
-    const dailyMap = new Map<string, { revenue: number; count: number; date: Date }>();
+type Timeframe = keyof typeof TIMEFRAMES;
 
-    if (daysCount <= 30) {
-      for (let i = daysCount - 1; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i);
-        const key = d.toISOString().split('T')[0];
-        dailyMap.set(key, { revenue: 0, count: 0, date: d });
-      }
-    } else {
-      const stepDays = daysCount === 90 ? 7 : daysCount === 180 ? 15 : 30;
-      for (let i = Math.floor(daysCount / stepDays) - 1; i >= 0; i--) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - i * stepDays);
-        const key = d.toISOString().split('T')[0];
-        dailyMap.set(key, { revenue: 0, count: 0, date: d });
-      }
-    }
+const MS_PER_DAY = 86_400_000;
 
-    let totalRevenue = 0;
-    orders.forEach((o) => {
-      const orderDate = new Date(o.createdAt);
-      if (isNaN(orderDate.getTime())) return; // Skip invalid dates
-      const rev = parseFloat(String(o.totalAmount || 0));
-      const isCompleted = o.status === 'completed' || o.status === 'delivered' || o.status === 'processing';
+/** Plot geometry, in CSS pixels. Width is measured from the container. */
+const PLOT_HEIGHT = 200;
+const PAD_TOP = 16;
+const PAD_BOTTOM = 24;
 
-      if (isCompleted) {
-        totalRevenue += rev;
-        const orderKey = orderDate.toISOString().split('T')[0];
-        if (dailyMap.has(orderKey)) {
-          const item = dailyMap.get(orderKey)!;
-          item.revenue += rev;
-          item.count += 1;
-        } else {
-          let closestKey = '';
-          let minDiff = Infinity;
-          dailyMap.forEach((val, key) => {
-            const diff = Math.abs(val.date.getTime() - orderDate.getTime());
-            if (diff < minDiff) {
-              minDiff = diff;
-              closestKey = key;
-            }
-          });
-          if (closestKey && minDiff < 30 * 24 * 3600 * 1000) {
-            const item = dailyMap.get(closestKey)!;
-            item.revenue += rev;
-            item.count += 1;
-          }
-        }
-      }
+export function DynamicAnalyticsChart({ orders, isLoading = false }: DynamicAnalyticsChartProps) {
+  const [timeframe, setTimeframe] = useState<Timeframe>('1M');
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+
+  // The SVG is drawn in real pixels rather than a stretched viewBox, so strokes and
+  // markers keep their intended geometry at every container width.
+  const plotRef = useRef<HTMLDivElement | null>(null);
+  const [plotWidth, setPlotWidth] = useState(640);
+
+  useEffect(() => {
+    const node = plotRef.current;
+    if (!node || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setPlotWidth(w);
     });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
 
-    const rawList = Array.from(dailyMap.values()).map((item, idx, arr) => {
-      const prevRev = idx > 0 ? arr[idx - 1].revenue : item.revenue;
-      let nodeGrowth = 0;
-      if (prevRev > 0) {
-        nodeGrowth = Math.round(((item.revenue - prevRev) / prevRev) * 100);
-      } else if (item.revenue > 0) {
-        nodeGrowth = 100;
-      }
+  const { buckets, totalRevenue, pendingTotal, pendingCount, periodGrowth, avgRevenue, maxRevenue } =
+    useMemo(() => {
+      const { days, bucketDays } = TIMEFRAMES[timeframe];
+      const bucketMs = bucketDays * MS_PER_DAY;
+      const bucketCount = Math.ceil(days / bucketDays);
+
+      // Window ends at the close of today, in local time. Bucketing on local dates
+      // avoids the off-by-one that UTC date keys cause either side of midnight.
+      const windowEnd = new Date();
+      windowEnd.setHours(23, 59, 59, 999);
+      const windowStart = windowEnd.getTime() - bucketCount * bucketMs;
+
+      const list = Array.from({ length: bucketCount }, (_, idx) => {
+        const end = windowEnd.getTime() - (bucketCount - 1 - idx) * bucketMs;
+        return { start: new Date(end - bucketMs + 1), end: new Date(end), revenue: 0, count: 0 };
+      });
+
+      let totalRevenue = 0;
+      let pendingTotal = 0;
+      let pendingCount = 0;
+      let prevPeriodRevenue = 0;
+      const prevWindowStart = windowStart - bucketCount * bucketMs;
+
+      orders.forEach((order) => {
+        const date = new Date(order.createdAt);
+        if (Number.isNaN(date.getTime())) return;
+
+        const amount = parseFloat(String(order.totalAmount ?? 0));
+        if (Number.isNaN(amount)) return;
+
+        const time = date.getTime();
+
+        if (order.status === PENDING_STATUS && time > windowStart && time <= windowEnd.getTime()) {
+          pendingTotal += amount;
+          pendingCount += 1;
+          return;
+        }
+
+        if (order.status !== REVENUE_STATUS) return;
+
+        // Immediately preceding window of equal length, for the growth comparison.
+        if (time > prevWindowStart && time <= windowStart) {
+          prevPeriodRevenue += amount;
+          return;
+        }
+
+        // Orders outside the window are simply out of scope — the previous build
+        // snapped them onto the nearest bucket, inflating the window's edges.
+        if (time <= windowStart || time > windowEnd.getTime()) return;
+
+        const idx = bucketCount - 1 - Math.floor((windowEnd.getTime() - time) / bucketMs);
+        if (idx < 0 || idx >= bucketCount) return;
+
+        list[idx].revenue += amount;
+        list[idx].count += 1;
+        totalRevenue += amount;
+      });
+
+      const periodGrowth =
+        prevPeriodRevenue > 0
+          ? parseFloat((((totalRevenue - prevPeriodRevenue) / prevPeriodRevenue) * 100).toFixed(1))
+          : null;
 
       return {
-        dateKey: item.date.toISOString().split('T')[0],
-        label: item.date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: daysCount <= 30 ? 'numeric' : undefined,
-        }),
-        revenue: item.revenue,
-        count: item.count,
-        growth: nodeGrowth,
+        buckets: list,
+        totalRevenue,
+        pendingTotal,
+        pendingCount,
+        periodGrowth,
+        avgRevenue: list.length ? totalRevenue / list.length : 0,
+        maxRevenue: Math.max(...list.map((b) => b.revenue), 0),
       };
-    });
+    }, [orders, timeframe]);
 
-    // Calculate growth compared to previous period
-    const prevPeriodStart = new Date(now);
-    prevPeriodStart.setDate(prevPeriodStart.getDate() - daysCount * 2);
-    const prevPeriodEnd = new Date(now);
-    prevPeriodEnd.setDate(prevPeriodEnd.getDate() - daysCount);
+  const hasData = totalRevenue > 0;
 
-    let prevTotalRev = 0;
-    orders.forEach((o) => {
-      const d = new Date(o.createdAt);
-      if (d >= prevPeriodStart && d < prevPeriodEnd) {
-        const isCompleted = o.status === 'completed' || o.status === 'delivered' || o.status === 'processing';
-        if (isCompleted) {
-          prevTotalRev += parseFloat(String(o.totalAmount || '0'));
-        }
-      }
-    });
+  const formatBucketLabel = useCallback(
+    (bucket: { start: Date; end: Date }) => {
+      const { bucketDays } = TIMEFRAMES[timeframe];
+      const opts: Intl.DateTimeFormatOptions =
+        bucketDays === 1 ? { month: 'short', day: 'numeric' } : { month: 'short', day: 'numeric' };
+      return bucket.end.toLocaleDateString('en-US', opts);
+    },
+    [timeframe]
+  );
 
-    let overallGrowth = 0;
-    if (prevTotalRev > 0) {
-      overallGrowth = parseFloat((((totalRevenue - prevTotalRev) / prevTotalRev) * 100).toFixed(1));
-    } else if (totalRevenue > 0) {
-      overallGrowth = 14.8;
+  // Geometry. A flat all-zero series still needs a sane scale, hence the floor.
+  const scaleMax = maxRevenue > 0 ? maxRevenue * 1.15 : 100;
+  const innerHeight = PLOT_HEIGHT - PAD_TOP - PAD_BOTTOM;
+
+  const coords = useMemo(() => {
+    const stepX = buckets.length > 1 ? plotWidth / (buckets.length - 1) : 0;
+    return buckets.map((bucket, i) => ({
+      x: buckets.length > 1 ? i * stepX : plotWidth / 2,
+      y: PAD_TOP + innerHeight - (bucket.revenue / scaleMax) * innerHeight,
+      bucket,
+    }));
+  }, [buckets, plotWidth, scaleMax, innerHeight]);
+
+  const { linePath, areaPath } = useMemo(() => {
+    if (coords.length === 0) return { linePath: '', areaPath: '' };
+    if (coords.length === 1) {
+      const only = coords[0];
+      return { linePath: `M 0 ${only.y} L ${plotWidth} ${only.y}`, areaPath: '' };
     }
 
-    const avgRevenue = rawList.length > 0 ? totalRevenue / rawList.length : 0;
-
-    const maxVal = Math.max(...rawList.map((r) => r.revenue), 100);
-    const yTicks = [
-      maxVal,
-      maxVal * 0.75,
-      maxVal * 0.5,
-      maxVal * 0.25,
-      0,
-    ];
-
-    return {
-      chartPoints: rawList,
-      totalRevenue,
-      periodGrowth: overallGrowth,
-      avgRevenue,
-      yTicks,
-    };
-  }, [orders, timeframe]);
-
-  // Generate SVG Path Coordinates
-  const svgData = useMemo(() => {
-    const width = 650;
-    const height = 180;
-    const paddingY = 20;
-    const paddingX = 20;
-
-    const revenues = chartPoints.map((p) => p.revenue);
-    const maxRev = Math.max(...revenues, 100);
-    const minRev = 0;
-
-    const stepX = (width - paddingX * 2) / Math.max(chartPoints.length - 1, 1);
-
-    const coords = chartPoints.map((pt, i) => {
-      const x = paddingX + i * stepX;
-      const ratio = (pt.revenue - minRev) / (maxRev - minRev);
-      const y = height - paddingY - ratio * (height - paddingY * 2);
-      return { x, y, pt };
-    });
-
-    if (coords.length === 0) return { pathD: '', areaD: '', coords: [] };
-
-    let pathD = `M ${coords[0].x} ${coords[0].y}`;
+    let d = `M ${coords[0].x} ${coords[0].y}`;
     for (let i = 0; i < coords.length - 1; i++) {
       const curr = coords[i];
       const next = coords[i + 1];
       const cpX = (curr.x + next.x) / 2;
-      pathD += ` C ${cpX} ${curr.y}, ${cpX} ${next.y}, ${next.x} ${next.y}`;
+      d += ` C ${cpX} ${curr.y}, ${cpX} ${next.y}, ${next.x} ${next.y}`;
     }
 
-    const first = coords[0];
-    const last = coords[coords.length - 1];
-    const areaD = `${pathD} L ${last.x} ${height} L ${first.x} ${height} Z`;
+    const baseline = PAD_TOP + innerHeight;
+    return {
+      linePath: d,
+      areaPath: `${d} L ${coords[coords.length - 1].x} ${baseline} L ${coords[0].x} ${baseline} Z`,
+    };
+  }, [coords, plotWidth, innerHeight]);
 
-    return { pathD, areaD, coords };
-  }, [chartPoints]);
+  // Four gridlines, and the y-axis labels sit at exactly these positions rather
+  // than being distributed by flexbox against a different height.
+  const gridLines = [0, 0.25, 0.5, 0.75, 1].map((ratio) => ({
+    ratio,
+    y: PAD_TOP + innerHeight - ratio * innerHeight,
+    value: scaleMax * ratio,
+  }));
+
+  // Thin the x labels so they never collide, regardless of bucket count.
+  const labelStride = Math.max(1, Math.ceil(buckets.length / 6));
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!plotRef.current || coords.length === 0) return;
+    const rect = plotRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const stepX = coords.length > 1 ? rect.width / (coords.length - 1) : rect.width;
+    const idx = Math.round(x / stepX);
+    setHoverIndex(Math.min(Math.max(idx, 0), coords.length - 1));
+  };
 
   const handleExportCSV = () => {
-    if (chartPoints.length === 0) {
+    if (buckets.length === 0) {
       toast.error('No analytics data available to export');
       return;
     }
 
-    const headers = ['Date', 'Revenue ($)', 'Orders Count', 'Growth Rate (%)'];
-    const csvRows = [headers.join(',')];
-
-    chartPoints.forEach((pt) => {
-      csvRows.push([pt.dateKey, pt.revenue.toFixed(2), pt.count, `${pt.growth}%`].join(','));
+    const rows = [['Period Start', 'Period End', 'Revenue', 'Orders'].join(',')];
+    buckets.forEach((b) => {
+      rows.push(
+        [
+          b.start.toISOString().split('T')[0],
+          b.end.toISOString().split('T')[0],
+          b.revenue.toFixed(2),
+          b.count,
+        ].join(',')
+      );
     });
 
-    const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `revenue_report_${timeframe}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.download = `revenue_${timeframe}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Analytics CSV report exported successfully!');
+    URL.revokeObjectURL(url);
+    toast.success('Revenue report exported');
   };
 
-  const formatK = (num: number) => {
-    if (num >= 1000000) return `$${(num / 1000000).toFixed(1)}M`;
-    if (num >= 1000) return `$${(num / 1000).toFixed(1)}K`;
-    return `$${num.toFixed(0)}`;
+  const formatCompact = (num: number) => {
+    if (num >= 1_000_000) return `$${(num / 1_000_000).toFixed(1)}M`;
+    if (num >= 1_000) return `$${(num / 1_000).toFixed(1)}K`;
+    return `$${Math.round(num)}`;
   };
+
+  const formatMoney = (num: number) =>
+    num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+  const hovered = hoverIndex !== null ? coords[hoverIndex] : null;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-7 shadow-xs text-slate-900 relative overflow-hidden flex flex-col justify-between space-y-6">
-      {/* Header & Controls (Matching Screenshot 2 layout with True Formula Emerald palette) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="bg-white border border-[#E5E2D9] rounded-3xl p-6 sm:p-7 shadow-luxe-card flex flex-col h-full">
+      {/* ── Header ───────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
-          <h3 className="font-serif text-2xl font-bold tracking-tight text-[#111827] flex items-center space-x-2">
-            <span>Revenue Overview</span>
-            <span className="text-[10px] bg-[#EAF2ED] text-[#2E5A44] px-2 py-0.5 rounded-full font-mono uppercase font-bold border border-[#C6DFD1]">
-              Live DB Synced
-            </span>
+          <h3 className="font-serif text-2xl font-bold tracking-tight text-[#111827]">
+            Revenue
           </h3>
+          <p className="text-xs text-[#6B7280] mt-1">
+            Settled orders over the selected period
+          </p>
         </div>
 
-        {/* Timeframe & Export Buttons */}
-        <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-          <div className="flex items-center bg-slate-100 p-1 rounded-2xl border border-slate-200">
-            {(['1W', '1M', '3M', '6M', '1Y'] as const).map((tf) => (
+        <div className="flex items-center gap-2 flex-wrap">
+          <div
+            role="group"
+            aria-label="Timeframe"
+            className="flex items-center bg-[#F5F0E4]/70 p-1 rounded-full border border-[#E5E2D9]"
+          >
+            {(Object.keys(TIMEFRAMES) as Timeframe[]).map((tf) => (
               <button
                 key={tf}
                 onClick={() => setTimeframe(tf)}
-                className={`px-3 py-1.5 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                aria-pressed={timeframe === tf}
+                className={`px-3 py-1.5 text-[11px] font-bold rounded-full transition-all cursor-pointer focus-luxe ${
                   timeframe === tf
-                    ? 'bg-[#2E5A44] text-white shadow-sm font-extrabold'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                    ? 'bg-[#2E5A44] text-white shadow-sm'
+                    : 'text-[#6B7280] hover:text-[#111827]'
                 }`}
               >
                 {tf}
@@ -253,7 +280,7 @@ export function DynamicAnalyticsChart({ orders }: DynamicAnalyticsChartProps) {
 
           <button
             onClick={handleExportCSV}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 text-xs font-bold rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-bold rounded-full bg-white hover:bg-[#EAF2ED] text-[#111827] border border-[#E5E2D9] hover:border-[#2E5A44] transition-all cursor-pointer focus-luxe"
           >
             <Download className="w-3.5 h-3.5 text-[#2E5A44]" />
             <span>Export</span>
@@ -261,128 +288,217 @@ export function DynamicAnalyticsChart({ orders }: DynamicAnalyticsChartProps) {
         </div>
       </div>
 
-      {/* Chart Canvas with Grid & Axis Markers */}
-      <div className="relative w-full h-56 pt-2 flex space-x-4">
-        {/* Left Y-Axis Price Markers */}
-        <div className="flex flex-col justify-between text-[11px] font-mono text-slate-400 font-semibold select-none py-1">
-          {yTicks.map((tick, i) => (
-            <span key={i}>{formatK(tick)}</span>
-          ))}
-        </div>
-
-        {/* SVG Bezier Area Chart */}
-        <div className="relative flex-1 h-full">
-          <svg className="w-full h-full overflow-visible" viewBox="0 0 650 180" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="trueFormulaBrandGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#2E5A44" stopOpacity="0.3" />
-                <stop offset="70%" stopColor="#2E5A44" stopOpacity="0.05" />
-                <stop offset="100%" stopColor="#2E5A44" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-
-            {/* Horizontal Grid dashed lines */}
-            <line x1="0" y1="20" x2="650" y2="20" stroke="#F1F5F9" strokeDasharray="4 4" />
-            <line x1="0" y1="60" x2="650" y2="60" stroke="#F1F5F9" strokeDasharray="4 4" />
-            <line x1="0" y1="100" x2="650" y2="100" stroke="#F1F5F9" strokeDasharray="4 4" />
-            <line x1="0" y1="140" x2="650" y2="140" stroke="#F1F5F9" strokeDasharray="4 4" />
-
-            {/* Area Gradient Fill */}
-            {svgData.areaD && <path d={svgData.areaD} fill="url(#trueFormulaBrandGradient)" />}
-
-            {/* Spline Path Line */}
-            {svgData.pathD && (
-              <path
-                d={svgData.pathD}
-                fill="none"
-                stroke="#2E5A44"
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            )}
-
-            {/* Interactive Data Points */}
-            {svgData.coords.map((c, idx) => (
-              <g key={idx}>
-                <circle
-                  cx={c.x}
-                  cy={c.y}
-                  r="5"
-                  className="fill-[#2E5A44] stroke-white stroke-2 transition-all hover:r-7 cursor-pointer"
-                  onMouseEnter={() =>
-                    setHoveredPoint({
-                      dateLabel: c.pt.label,
-                      revenue: c.pt.revenue,
-                      count: c.pt.count,
-                      growth: c.pt.growth,
-                      x: c.x,
-                      y: c.y,
-                    })
-                  }
-                  onMouseLeave={() => setHoveredPoint(null)}
-                />
-              </g>
-            ))}
-          </svg>
-
-          {/* Interactive Floating Tooltip Card */}
-          {hoveredPoint && (
-            <div
-              className="absolute z-30 bg-[#111827] text-white p-3 rounded-2xl shadow-xl border border-slate-800 pointer-events-none transform -translate-x-1/2 -translate-y-full transition-all min-w-[130px]"
-              style={{
-                left: `${(hoveredPoint.x / 650) * 100}%`,
-                top: `${(hoveredPoint.y / 180) * 100 - 10}%`,
-              }}
-            >
-              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                {hoveredPoint.dateLabel}
-              </div>
-              <div className="text-base font-bold font-serif text-white mt-0.5">
-                Revenue ${hoveredPoint.revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </div>
-              <div
-                className={`text-[11px] font-extrabold flex items-center space-x-1 mt-0.5 ${
-                  hoveredPoint.growth >= 0 ? 'text-emerald-400' : 'text-red-400'
+      {/* ── Headline figure ──────────────────────────────────────────────── */}
+      <div className="mt-6 flex items-end gap-4 flex-wrap">
+        {isLoading ? (
+          <div className="h-10 w-40 bg-[#F5F0E4] rounded-lg animate-pulse" />
+        ) : (
+          <>
+            <span className="font-mono text-3xl sm:text-4xl font-bold text-[#111827] tracking-tight tabular-nums">
+              {formatMoney(totalRevenue)}
+            </span>
+            {periodGrowth === null ? (
+              <span className="flex items-center gap-1 text-xs font-semibold text-[#9CA3AF] pb-1.5">
+                <Minus className="w-3.5 h-3.5" />
+                <span>No prior period</span>
+              </span>
+            ) : (
+              <span
+                className={`flex items-center gap-1 text-xs font-bold pb-1.5 ${
+                  periodGrowth >= 0 ? 'text-[#2E5A44]' : 'text-[#B45309]'
                 }`}
               >
-                <span>{hoveredPoint.growth >= 0 ? `+${hoveredPoint.growth}%` : `${hoveredPoint.growth}%`}</span>
+                {periodGrowth >= 0 ? (
+                  <TrendingUp className="w-3.5 h-3.5" />
+                ) : (
+                  <TrendingDown className="w-3.5 h-3.5" />
+                )}
+                <span className="tabular-nums">
+                  {periodGrowth >= 0 ? '+' : ''}
+                  {periodGrowth}%
+                </span>
+                <span className="text-[#9CA3AF] font-medium">vs previous {timeframe}</span>
+              </span>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* ── Plot ─────────────────────────────────────────────────────────── */}
+      <div className="mt-6 flex-1">
+        {isLoading ? (
+          <div
+            className="w-full bg-[#F5F0E4]/50 rounded-2xl animate-pulse"
+            style={{ height: PLOT_HEIGHT }}
+          />
+        ) : (
+          <div className="flex gap-3">
+            {/* Y axis, positioned against the same geometry the plot uses */}
+            <div className="relative w-12 shrink-0" style={{ height: PLOT_HEIGHT }}>
+              {gridLines.map((line) => (
+                <span
+                  key={line.ratio}
+                  className="absolute right-0 -translate-y-1/2 font-mono text-[10px] text-[#9CA3AF] tabular-nums"
+                  style={{ top: line.y }}
+                >
+                  {formatCompact(line.value)}
+                </span>
+              ))}
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div
+                ref={plotRef}
+                className="relative"
+                style={{ height: PLOT_HEIGHT }}
+                onPointerMove={handlePointerMove}
+                onPointerLeave={() => setHoverIndex(null)}
+              >
+                <svg
+                  width={plotWidth}
+                  height={PLOT_HEIGHT}
+                  className="overflow-visible block"
+                  role="img"
+                  aria-label={`Revenue over the last ${timeframe}, totalling ${formatMoney(totalRevenue)}`}
+                >
+                  <defs>
+                    <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2E5A44" stopOpacity="0.22" />
+                      <stop offset="100%" stopColor="#2E5A44" stopOpacity="0" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Recessive grid */}
+                  {gridLines.map((line) => (
+                    <line
+                      key={line.ratio}
+                      x1={0}
+                      y1={line.y}
+                      x2={plotWidth}
+                      y2={line.y}
+                      stroke="#EAF2ED"
+                      strokeWidth={1}
+                      strokeDasharray={line.ratio === 0 ? undefined : '3 4'}
+                    />
+                  ))}
+
+                  {hasData && areaPath && <path d={areaPath} fill="url(#revenueFill)" />}
+
+                  {linePath && (
+                    <path
+                      d={linePath}
+                      fill="none"
+                      stroke={hasData ? '#2E5A44' : '#C6DFD1'}
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )}
+
+                  {/* Crosshair + focused marker */}
+                  {hovered && hasData && (
+                    <g pointerEvents="none">
+                      <line
+                        x1={hovered.x}
+                        y1={PAD_TOP}
+                        x2={hovered.x}
+                        y2={PAD_TOP + innerHeight}
+                        stroke="#2E5A44"
+                        strokeWidth={1}
+                        strokeDasharray="3 3"
+                        opacity={0.5}
+                      />
+                      <circle cx={hovered.x} cy={hovered.y} r={5} fill="#2E5A44" />
+                      <circle
+                        cx={hovered.x}
+                        cy={hovered.y}
+                        r={5}
+                        fill="none"
+                        stroke="#FFFFFF"
+                        strokeWidth={2}
+                      />
+                    </g>
+                  )}
+                </svg>
+
+                {/* Tooltip, clamped so it never leaves the card */}
+                {hovered && hasData && (
+                  <div
+                    className="absolute z-20 pointer-events-none bg-[#111827] text-white px-3 py-2 rounded-xl shadow-luxe-lg min-w-[132px]"
+                    style={{
+                      left: Math.min(Math.max(hovered.x, 66), Math.max(plotWidth - 66, 66)),
+                      top: Math.max(hovered.y - 12, 0),
+                      transform: 'translate(-50%, -100%)',
+                    }}
+                  >
+                    <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#C6DFD1]">
+                      {formatBucketLabel(hovered.bucket)}
+                    </div>
+                    <div className="font-mono text-sm font-bold mt-0.5 tabular-nums">
+                      {formatMoney(hovered.bucket.revenue)}
+                    </div>
+                    <div className="text-[10px] text-gray-400 mt-0.5">
+                      {hovered.bucket.count} {hovered.bucket.count === 1 ? 'order' : 'orders'}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty state sits over the flat baseline rather than pretending it is data */}
+                {!hasData && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                    <Inbox className="w-6 h-6 text-[#C6DFD1] mb-2" />
+                    <p className="text-xs font-semibold text-[#6B7280]">
+                      No settled revenue in this period
+                    </p>
+                    <p className="text-[11px] text-[#9CA3AF] mt-0.5">
+                      {pendingCount > 0
+                        ? `${pendingCount} pending ${pendingCount === 1 ? 'order' : 'orders'} awaiting settlement`
+                        : 'Try a longer timeframe'}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* X axis */}
+              <div className="relative h-5 mt-1">
+                {coords.map((c, i) =>
+                  i % labelStride === 0 || i === coords.length - 1 ? (
+                    <span
+                      key={i}
+                      className="absolute -translate-x-1/2 font-mono text-[10px] text-[#9CA3AF] whitespace-nowrap"
+                      style={{
+                        left: Math.min(Math.max(c.x, 18), Math.max(plotWidth - 18, 18)),
+                      }}
+                    >
+                      {formatBucketLabel(c.bucket)}
+                    </span>
+                  ) : null
+                )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* X-Axis Date Labels Row */}
-      <div className="pl-14 flex justify-between items-center text-[11px] font-medium text-slate-400 border-b border-slate-100 pb-4">
-        {chartPoints.map((pt, i) => (
-          <span key={i}>{pt.label}</span>
-        ))}
-      </div>
-
-      {/* Bottom Summary Pill Indicators (Matching Screenshot 2 layout) */}
-      <div className="flex items-center space-x-3 pt-1 flex-wrap gap-y-2">
-        <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-2xl flex items-center space-x-2 text-xs">
-          <span className="text-slate-500 font-medium">Total</span>
-          <strong className="text-[#111827] font-serif text-sm font-bold">${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong>
+      {/* ── Summary ──────────────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 flex-wrap mt-6 pt-5 border-t border-[#EAF2ED]">
+        <div className="bg-[#FDFBF7] border border-[#E5E2D9] px-3.5 py-2 rounded-full flex items-center gap-2 text-[11px]">
+          <span className="text-[#6B7280] font-medium">Avg / period</span>
+          <strong className="text-[#111827] font-mono font-bold tabular-nums">
+            {formatMoney(avgRevenue)}
+          </strong>
         </div>
 
-        <div className="bg-[#EAF2ED] border border-[#C6DFD1] px-4 py-2 rounded-2xl flex items-center space-x-2 text-xs">
-          <span className="text-[#2E5A44] font-medium">Growth</span>
-          <span
-            className={`font-bold flex items-center space-x-1 ${
-              periodGrowth >= 0 ? 'text-emerald-700' : 'text-red-700'
-            }`}
-          >
-            <span>{periodGrowth >= 0 ? `+${periodGrowth}%` : `${periodGrowth}%`}</span>
-            {periodGrowth >= 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-          </span>
-        </div>
-
-        <div className="bg-slate-50 border border-slate-200 px-4 py-2 rounded-2xl flex items-center space-x-2 text-xs">
-          <span className="text-slate-500 font-medium">Avg</span>
-          <strong className="text-[#111827] font-mono text-sm font-bold">${avgRevenue.toFixed(2)}</strong>
-        </div>
+        {pendingCount > 0 && (
+          <div className="bg-[#FEF6E7] border border-[#F0D9A8] px-3.5 py-2 rounded-full flex items-center gap-2 text-[11px]">
+            <span className="text-[#8A5C29] font-medium">
+              Pending ({pendingCount})
+            </span>
+            <strong className="text-[#8A5C29] font-mono font-bold tabular-nums">
+              {formatMoney(pendingTotal)}
+            </strong>
+          </div>
+        )}
       </div>
     </div>
   );

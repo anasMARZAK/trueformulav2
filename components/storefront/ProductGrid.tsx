@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Search, SlidersHorizontal, RotateCcw, Sparkles } from 'lucide-react';
+import { Search, RotateCcw, X } from 'lucide-react';
 import { type Product } from '@/lib/db/schema';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { ProductCard } from './ProductCard';
@@ -62,7 +62,40 @@ export function ProductGrid({
     { key: 'accessories', label: t.catalog.categories.accessories },
   ];
 
-  const [maxPriceFilter, setMaxPriceFilter] = useState<number>(200);
+  // Ceiling for the price filter, derived from the catalog rather than hardcoded,
+  // so the slider always spans the real range of what is on sale.
+  const priceCeiling = useMemo(() => {
+    const highest = products.reduce((max, p) => Math.max(max, parseFloat(p.price) || 0), 0);
+    return Math.max(10, Math.ceil(highest / 10) * 10);
+  }, [products]);
+
+  const [maxPriceFilter, setMaxPriceFilter] = useState<number | null>(null);
+  const effectiveMaxPrice = maxPriceFilter ?? priceCeiling;
+
+  // How many products sit in each category, ignoring the category filter itself so
+  // the counts stay stable as you click between tabs.
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0 };
+    products.forEach((prod) => {
+      if (parseFloat(prod.price) > effectiveMaxPrice) return;
+      if (activeQuery.trim()) {
+        const q = activeQuery.toLowerCase();
+        const haystack = [
+          prod.nameEn,
+          prod.nameFr,
+          prod.descriptionEn,
+          prod.descriptionFr,
+          JSON.stringify(prod.flavors),
+        ]
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(q)) return;
+      }
+      counts.all += 1;
+      counts[prod.category] = (counts[prod.category] || 0) + 1;
+    });
+    return counts;
+  }, [products, activeQuery, effectiveMaxPrice]);
 
   // Filtering & Sorting Logic
   const filteredProducts = useMemo(() => {
@@ -75,7 +108,7 @@ export function ProductGrid({
 
         // Price range filter
         const priceNum = parseFloat(prod.price);
-        if (maxPriceFilter > 0 && priceNum > maxPriceFilter) {
+        if (priceNum > effectiveMaxPrice) {
           return false;
         }
 
@@ -121,147 +154,194 @@ export function ProductGrid({
         if (!a.isFeatured && b.isFeatured) return 1;
         return 0;
       });
-  }, [products, activeCategory, activeQuery, sortBy, language]);
+  }, [products, activeCategory, activeQuery, sortBy, language, effectiveMaxPrice]);
 
   const handleResetFilters = () => {
     handleCategoryClick('all');
     handleSearchInput('');
     setSortBy('featured');
+    setMaxPriceFilter(null);
   };
 
+  const hasActiveFilters =
+    activeCategory !== 'all' || Boolean(activeQuery) || maxPriceFilter !== null;
+
   return (
-    <section id="catalog" className="py-16 bg-[#FDFBF7] min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto space-y-4">
-          <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-white/80 backdrop-blur-sm border border-[#C6DFD1] shadow-2xs">
-            <Sparkles className="w-3.5 h-3.5 text-[#2E5A44]" />
-            <span className="text-[11px] uppercase tracking-[0.2em] font-bold text-[#2E5A44] font-sans">
-              {t.catalog.title}
+    <section id="catalog" className="py-20 sm:py-24 bg-[#FDFBF7]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* ── Section header ─────────────────────────────────────────────── */}
+        <div className="max-w-2xl mb-10">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="w-10 h-px bg-[#2E5A44]/40" />
+            <span className="text-[11px] uppercase tracking-[0.28em] font-semibold text-[#2E5A44] font-sans">
+              {t.catalog.badge}
             </span>
           </div>
-          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#111827] font-bold tracking-tight">
+          <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#111827] font-bold tracking-tight text-balance">
             {t.catalog.title}
           </h2>
-          <p className="text-[#4B5563] font-sans font-light text-base leading-relaxed">
+          <p className="mt-4 text-[#4B5563] font-sans font-light text-base leading-relaxed text-pretty">
             {t.catalog.subtitle}
           </p>
         </div>
 
-        {/* Filter Bar: Categories, Search, Sort */}
-        <div className="space-y-4 bg-[#FDFBF7] p-5 sm:p-6 rounded-[2rem] border border-[#EAF2ED] shadow-luxe-card">
-          {/* Category Tabs — Hero Pill Button Style */}
-          <div className="flex items-center space-x-2.5 overflow-x-auto pb-3 no-scrollbar border-b border-[#EAF2ED]">
+        {/* ── Filter rail ────────────────────────────────────────────────── */}
+        <div className="space-y-5">
+          {/* Category tabs with live counts */}
+          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar rail-fade pb-1 -mx-4 px-4 sm:mx-0 sm:px-0">
             {categoryTabs.map((tab) => {
               const isActive = activeCategory === tab.key;
+              const count = categoryCounts[tab.key] || 0;
               return (
                 <button
                   key={tab.key}
                   onClick={() => handleCategoryClick(tab.key)}
-                  className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all duration-300 whitespace-nowrap cursor-pointer font-sans ${
+                  disabled={count === 0 && !isActive}
+                  className={`shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-300 whitespace-nowrap font-sans focus-luxe ${
                     isActive
-                      ? 'bg-[#111827] text-white shadow-md scale-105'
-                      : 'bg-white border border-[#C6DFD1] text-[#111827] hover:border-[#2E5A44] hover:text-[#2E5A44] hover:bg-[#EAF2ED]'
+                      ? 'bg-[#111827] text-white shadow-luxe'
+                      : count === 0
+                        ? 'bg-transparent border border-[#E5E2D9] text-[#C4C0B6] cursor-not-allowed'
+                        : 'bg-white border border-[#E5E2D9] text-[#111827] hover:border-[#2E5A44] hover:text-[#2E5A44] cursor-pointer'
                   }`}
                 >
-                  {tab.label}
+                  <span>{tab.label}</span>
+                  <span
+                    className={`font-mono text-[10px] ${isActive ? 'text-[#C6DFD1]' : 'text-[#9CA3AF]'}`}
+                  >
+                    {count}
+                  </span>
                 </button>
               );
             })}
           </div>
 
-          {/* Search & Sort Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
-            {/* Search Input */}
-            <div className="relative w-full sm:max-w-md">
+          {/* Search · price · sort */}
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4 p-4 sm:p-5 rounded-2xl bg-white border border-[#EAF2ED] shadow-luxe-card">
+            {/* Search */}
+            <div className="relative flex-1 min-w-0">
+              <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 value={activeQuery}
                 onChange={(e) => handleSearchInput(e.target.value)}
                 placeholder={t.catalog.searchPlaceholder}
-                className="w-full pl-10 pr-4 py-2.5 bg-[#FDFBF7] border border-[#C6DFD1] rounded-lg text-xs font-sans placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#2E5A44]"
+                className="w-full pl-10 pr-9 py-2.5 bg-[#FDFBF7] border border-[#E5E2D9] rounded-full text-xs font-sans placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#2E5A44]/30 focus:border-[#2E5A44] transition-all"
               />
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              {activeQuery && (
+                <button
+                  onClick={() => handleSearchInput('')}
+                  aria-label={t.catalog.resetFilters}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#9CA3AF] hover:text-[#111827] rounded-full"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
-            {/* Sort Dropdown */}
-            <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
-              <SlidersHorizontal className="w-4 h-4 text-gray-500 shrink-0" />
-              <label className="text-xs text-gray-500 font-medium shrink-0">
-                {t.catalog.sortLabel}:
+            {/* Price ceiling — previously a hidden state capped at $200 with no control */}
+            <div className="flex items-center gap-3 shrink-0 lg:border-l lg:border-[#EAF2ED] lg:pl-4">
+              <label
+                htmlFor="max-price"
+                className="text-[11px] font-semibold text-[#6B7280] whitespace-nowrap font-sans"
+              >
+                {t.catalog.maxPriceLabel}
+              </label>
+              <input
+                id="max-price"
+                type="range"
+                min={10}
+                max={priceCeiling}
+                step={5}
+                value={effectiveMaxPrice}
+                onChange={(e) => setMaxPriceFilter(Number(e.target.value))}
+                className="w-28 sm:w-32 accent-[#2E5A44] cursor-pointer"
+              />
+              <span className="font-mono text-xs font-bold text-[#111827] w-12 tabular-nums">
+                ${effectiveMaxPrice}
+              </span>
+            </div>
+
+            {/* Sort */}
+            <div className="flex items-center gap-2 shrink-0 lg:border-l lg:border-[#EAF2ED] lg:pl-4">
+              <label htmlFor="sort-by" className="sr-only">
+                {t.catalog.sortLabel}
               </label>
               <select
+                id="sort-by"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="bg-[#FDFBF7] border border-[#C6DFD1] text-xs font-semibold text-[#111827] rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#2E5A44] cursor-pointer"
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="bg-[#FDFBF7] border border-[#E5E2D9] text-xs font-semibold text-[#111827] rounded-full px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#2E5A44]/30 focus:border-[#2E5A44] cursor-pointer font-sans"
               >
                 <option value="featured">{t.catalog.sortOptions.featured}</option>
-                <option value="popularity">{language === 'fr' ? 'Popularité' : 'Popularity'}</option>
+                <option value="popularity">{t.catalog.sortOptions.popularity}</option>
                 <option value="priceAsc">{t.catalog.sortOptions.priceAsc}</option>
                 <option value="priceDesc">{t.catalog.sortOptions.priceDesc}</option>
                 <option value="nameAsc">{t.catalog.sortOptions.nameAsc}</option>
               </select>
             </div>
           </div>
+
+          {/* Results counter */}
+          <div
+            className="flex justify-between items-center px-1 text-xs text-[#6B7280] font-sans"
+            aria-live="polite"
+          >
+            <span>
+              <strong className="text-[#111827] font-bold font-mono">{filteredProducts.length}</strong>{' '}
+              {t.catalog.resultsCount}
+            </span>
+            {hasActiveFilters && (
+              <button
+                onClick={handleResetFilters}
+                className="text-[#2E5A44] hover:underline flex items-center gap-1.5 font-semibold focus-luxe rounded"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>{t.catalog.resetFilters}</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Results Counter */}
-        <div className="flex justify-between items-center px-1 text-xs text-gray-500 font-medium">
-          <span>
-            Showing <strong className="text-[#111827] font-bold">{filteredProducts.length}</strong> formulations
-          </span>
-          {(activeCategory !== 'all' || activeQuery) && (
-            <button
-              onClick={handleResetFilters}
-              className="text-[#2E5A44] hover:underline flex items-center space-x-1"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>{t.catalog.resetFilters}</span>
-            </button>
+        {/* ── Grid ───────────────────────────────────────────────────────── */}
+        <div className="mt-8">
+          {isLoading ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  onQuickView={(p) => setSelectedProductForModal(p)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl p-12 border border-[#EAF2ED] text-center max-w-md mx-auto space-y-4 shadow-luxe-card">
+              <div className="w-12 h-12 rounded-full bg-[#EAF2ED] text-[#2E5A44] flex items-center justify-center mx-auto">
+                <Search className="w-5 h-5" />
+              </div>
+              <h3 className="font-serif text-2xl font-bold text-[#111827]">{t.catalog.emptyTitle}</h3>
+              <p className="text-[13px] text-[#6B7280] leading-relaxed font-sans">
+                {t.catalog.emptyText}
+              </p>
+              <button
+                onClick={handleResetFilters}
+                className="px-6 py-3 bg-[#111827] hover:bg-[#2E5A44] text-white text-xs font-bold uppercase tracking-[0.12em] rounded-full transition-colors inline-flex items-center gap-2 focus-luxe font-sans"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{t.catalog.resetFilters}</span>
+              </button>
+            </div>
           )}
         </div>
-
-        {/* Product Cards Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <ProductCardSkeleton key={i} />
-            ))}
-          </div>
-        ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onQuickView={(p) => setSelectedProductForModal(p)}
-              />
-            ))}
-          </div>
-        ) : (
-          /* Empty State */
-          <div className="bg-white rounded-2xl p-12 border border-[#EAF2ED] text-center max-w-md mx-auto space-y-4 shadow-xs">
-            <div className="w-12 h-12 rounded-full bg-[#EAF2ED] text-[#2E5A44] flex items-center justify-center mx-auto">
-              <Search className="w-6 h-6" />
-            </div>
-            <h3 className="font-serif text-xl font-bold text-[#111827]">
-              {t.catalog.emptyTitle}
-            </h3>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              {t.catalog.emptyText}
-            </p>
-            <button
-              onClick={handleResetFilters}
-              className="px-5 py-2.5 bg-[#2E5A44] text-white text-xs font-semibold rounded-lg hover:bg-[#244736] transition-colors inline-flex items-center space-x-2"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>{t.catalog.resetFilters}</span>
-            </button>
-          </div>
-        )}
       </div>
 
-      {/* Product Detail Modal */}
       {selectedProductForModal && (
         <ProductDetailModal
           product={selectedProductForModal}

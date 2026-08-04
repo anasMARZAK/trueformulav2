@@ -91,7 +91,7 @@ export function ProductCrudTable() {
   return (
     <div className="space-y-4">
       {/* Controls Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 border border-[#C6DFD1] rounded-3xl shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 border border-[#E5E2D9] rounded-2xl shadow-luxe-card">
         {/* Search */}
         <div className="relative w-full sm:w-80">
           <input
@@ -102,7 +102,7 @@ export function ProductCrudTable() {
               setCurrentPage(1);
             }}
             placeholder={t.admin.products.searchPlaceholder}
-            className="w-full pl-9 pr-4 py-2 bg-[#FDFBF7] border border-[#C6DFD1] rounded-full text-xs font-sans focus:ring-2 focus:ring-[#2E5A44]/30 outline-none"
+            className="w-full pl-9 pr-4 py-2 bg-[#FDFBF7] border border-[#E5E2D9] rounded-full text-xs font-sans placeholder:text-[#9CA3AF] focus:ring-2 focus:ring-[#2E5A44]/30 focus:border-[#2E5A44] outline-none transition-all"
           />
           <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
         </div>
@@ -118,7 +118,7 @@ export function ProductCrudTable() {
       </div>
 
       {/* Table Container */}
-      <div className="bg-white border border-[#C6DFD1] rounded-3xl overflow-hidden shadow-sm">
+      <div className="bg-white border border-[#E5E2D9] rounded-2xl overflow-hidden shadow-luxe-card">
         {isLoading ? (
           <div className="py-12 text-center text-gray-500 font-sans text-xs">
             <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#2E5A44]" />
@@ -134,7 +134,7 @@ export function ProductCrudTable() {
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-[#EAF2ED]/60 border-b border-[#C6DFD1] text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                  <tr className="bg-[#F5F0E4]/60 border-b border-[#E5E2D9] text-[11px] font-bold text-gray-700 uppercase tracking-wider">
                     <th className="py-4 px-6">{t.admin.products.productHeader}</th>
                     <th className="py-4 px-6">{t.admin.products.category}</th>
                     <th className="py-4 px-6">{t.admin.products.price}</th>
@@ -236,14 +236,14 @@ export function ProductCrudTable() {
                   <button
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="px-3 py-1 bg-white border border-[#C6DFD1] rounded-lg text-xs font-semibold hover:bg-gray-50 disabled:opacity-40 cursor-pointer"
+                    className="px-3.5 py-1.5 bg-white border border-[#E5E2D9] rounded-full text-xs font-semibold text-[#111827] hover:bg-[#EAF2ED] hover:border-[#2E5A44] disabled:opacity-40 disabled:hover:bg-white disabled:hover:border-[#E5E2D9] cursor-pointer focus-luxe transition-all"
                   >
                     Previous
                   </button>
                   <button
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="px-3 py-1 bg-white border border-[#C6DFD1] rounded-lg text-xs font-semibold hover:bg-gray-50 disabled:opacity-40 cursor-pointer"
+                    className="px-3.5 py-1.5 bg-white border border-[#E5E2D9] rounded-full text-xs font-semibold text-[#111827] hover:bg-[#EAF2ED] hover:border-[#2E5A44] disabled:opacity-40 disabled:hover:bg-white disabled:hover:border-[#E5E2D9] cursor-pointer focus-luxe transition-all"
                   >
                     Next
                   </button>

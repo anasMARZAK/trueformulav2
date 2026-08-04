@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, ShoppingBag, User, Globe, Shield, Sparkles, X, ShieldAlert, LogOut, ChevronDown, Menu, FlaskConical, ShieldCheck, Leaf, Truck, Beaker, Award, Zap, RefreshCw } from 'lucide-react';
+import { Search, ShoppingBag, User, Sparkles, X, ShieldAlert, LogOut, ChevronDown, Menu, FlaskConical, ShieldCheck, Leaf, Truck, Beaker, Award, Zap } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -15,6 +15,18 @@ interface HeaderProps {
   currentSearchQuery?: string;
   selectedCategory?: string;
 }
+
+/** Ticker claims, defined once and rendered twice to form the seamless loop. */
+const TICKER_ITEMS = [
+  { Icon: Sparkles, en: '20% OFF MONTHLY SUBSCRIPTIONS — CANCEL ANYTIME', fr: '-20% SUR LES ABONNEMENTS MENSUELS' },
+  { Icon: FlaskConical, en: '100% COLD-FILTERED NATIVE WHEY ISOLATE', fr: 'ISOLAT DE WHEY NATIF 100% FILTRÉ À FROID' },
+  { Icon: ShieldCheck, en: '3RD-PARTY INDEPENDENT LABORATORY TESTED', fr: 'TESTÉ EN LABORATOIRE INDÉPENDANT' },
+  { Icon: Leaf, en: 'ZERO ARTIFICIAL FILLERS OR SWEETENERS', fr: 'ZÉRO ADDITIFS OU ÉDULCORANTS ARTIFICIELS' },
+  { Icon: Truck, en: 'FREE EXPRESS SHIPPING OVER $75', fr: 'LIVRAISON EXPRESS GRATUITE DÈS 75$' },
+  { Icon: Beaker, en: 'PHARMACEUTICAL-GRADE 200 MESH CREATINE', fr: 'CRÉATINE QUALITÉ PHARMACEUTIQUE 200 MESH' },
+  { Icon: Award, en: '10,000MG HYDROLYZED MARINE COLLAGEN', fr: '10 000MG COLLAGÈNE MARIN HYDROLYSÉ' },
+  { Icon: Zap, en: '100% FERMENTED ORGANIC PLANT PROTEIN', fr: 'PROTÉINE VÉGÉTALE BIO 100% FERMENTÉE' },
+];
 
 export function Header({
   onSearchChange,
@@ -76,41 +88,19 @@ export function Header({
         >
           <div className="w-full overflow-hidden select-none">
             <div className="animate-marquee-slow flex items-center space-x-8">
-              {/* First Track Copy */}
-              {[
-                { Icon: Sparkles, text: language === 'fr' ? '-20% SUR LES ABONNEMENTS MENSUELS' : '20% OFF MONTHLY SUBSCRIPTIONS — CANCEL ANYTIME' },
-                { Icon: FlaskConical, text: language === 'fr' ? 'ISOLAT DE WHEY NATIF 100% FILTRÉ À FROID' : '100% COLD-FILTERED NATIVE WHEY ISOLATE' },
-                { Icon: ShieldCheck, text: language === 'fr' ? 'TESTÉ EN LABORATOIRE INDÉPENDANT TIERCE PARTIE' : '3RD-PARTY INDEPENDENT LABORATORY TESTED FOR PURITY' },
-                { Icon: Leaf, text: language === 'fr' ? 'ZÉRO ADDITIFS, ÉDULCORANTS OU GOMMES ARTIFICIELLES' : 'ZERO ARTIFICIAL FILLERS, SWEETENERS, OR GUM BINDERS' },
-                { Icon: Truck, text: language === 'fr' ? 'LIVRAISON EXPRESS GRATUITE DÈS 75$' : 'FREE EXPRESS APOTHECARY SHIPPING ON ORDERS OVER $75' },
-                { Icon: Beaker, text: language === 'fr' ? 'CRÉATINE MICRONISÉE PURE QUALITÉ PHARMACEUTIQUE 200 MESH' : 'PHARMACEUTICAL-GRADE 200 MESH MICRONIZED CREATINE' },
-                { Icon: Award, text: language === 'fr' ? '10 000MG COLLAGÈNE MARIN BIO-ACTIF HYDROLYSÉ' : '10,000MG BIO-ACTIVE HYDROLYZED MARINE COLLAGEN PEPTIDES' },
-                { Icon: Zap, text: language === 'fr' ? 'PROTÉINE VÉGÉTALE BIO 100% FERMENTÉE' : '100% FERMENTED ORGANIC PLANT-BASED AMINO ACIDS' },
-              ].map((item, idx) => (
-                <div key={idx} className="flex items-center space-x-2 shrink-0">
-                  <item.Icon className="w-3.5 h-3.5 text-[#C6DFD1] shrink-0" />
-                  <span className="text-[#C6DFD1] font-semibold">{item.text}</span>
-                  <span className="text-emerald-300/40 text-xs px-2">•</span>
-                </div>
-              ))}
-
-              {/* Duplicated Track Copy for Infinite Seamless Loop */}
-              {[
-                { Icon: Sparkles, text: language === 'fr' ? '-20% SUR LES ABONNEMENTS MENSUELS' : '20% OFF MONTHLY SUBSCRIPTIONS — CANCEL ANYTIME' },
-                { Icon: FlaskConical, text: language === 'fr' ? 'ISOLAT DE WHEY NATIF 100% FILTRÉ À FROID' : '100% COLD-FILTERED NATIVE WHEY ISOLATE' },
-                { Icon: ShieldCheck, text: language === 'fr' ? 'TESTÉ EN LABORATOIRE INDÉPENDANT TIERCE PARTIE' : '3RD-PARTY INDEPENDENT LABORATORY TESTED FOR PURITY' },
-                { Icon: Leaf, text: language === 'fr' ? 'ZÉRO ADDITIFS, ÉDULCORANTS OU GOMMES ARTIFICIELLES' : 'ZERO ARTIFICIAL FILLERS, SWEETENERS, OR GUM BINDERS' },
-                { Icon: Truck, text: language === 'fr' ? 'LIVRAISON EXPRESS GRATUITE DÈS 75$' : 'FREE EXPRESS APOTHECARY SHIPPING ON ORDERS OVER $75' },
-                { Icon: Beaker, text: language === 'fr' ? 'CRÉATINE MICRONISÉE PURE QUALITÉ PHARMACEUTIQUE 200 MESH' : 'PHARMACEUTICAL-GRADE 200 MESH MICRONIZED CREATINE' },
-                { Icon: Award, text: language === 'fr' ? '10 000MG COLLAGÈNE MARIN BIO-ACTIF HYDROLYSÉ' : '10,000MG BIO-ACTIVE HYDROLYZED MARINE COLLAGEN PEPTIDES' },
-                { Icon: Zap, text: language === 'fr' ? 'PROTÉINE VÉGÉTALE BIO 100% FERMENTÉE' : '100% FERMENTED ORGANIC PLANT-BASED AMINO ACIDS' },
-              ].map((item, idx) => (
-                <div key={`dup-${idx}`} className="flex items-center space-x-2 shrink-0">
-                  <item.Icon className="w-3.5 h-3.5 text-[#C6DFD1] shrink-0" />
-                  <span className="text-[#C6DFD1] font-semibold">{item.text}</span>
-                  <span className="text-emerald-300/40 text-xs px-2">•</span>
-                </div>
-              ))}
+              {/* Rendered twice: the keyframe translates -50%, so the second copy
+                  scrolls into the gap left by the first and the loop is seamless. */}
+              {[0, 1].map((copy) =>
+                TICKER_ITEMS.map((item, idx) => (
+                  <div key={`${copy}-${idx}`} className="flex items-center space-x-2 shrink-0" aria-hidden={copy === 1}>
+                    <item.Icon className="w-3.5 h-3.5 text-[#C6DFD1] shrink-0" />
+                    <span className="text-[#C6DFD1] font-semibold">
+                      {language === 'fr' ? item.fr : item.en}
+                    </span>
+                    <span className="text-[#C6DFD1]/30 text-xs px-2">•</span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
@@ -296,6 +286,33 @@ export function Header({
             </div>
           </div>
 
+          {/* Desktop Collection Rail — the only header-level way to filter on desktop */}
+          <nav
+            aria-label={t.header.categories.all}
+            className="hidden md:flex items-center gap-1 h-11 border-t border-[#EAF2ED] overflow-x-auto no-scrollbar"
+          >
+            {categories.map((cat) => {
+              const isActive = selectedCategory === cat.key;
+              return (
+                <button
+                  key={cat.key}
+                  onClick={() => onCategorySelect?.(cat.key)}
+                  aria-current={isActive ? 'true' : undefined}
+                  className={`relative shrink-0 px-3 py-2 text-[11px] font-semibold tracking-wide transition-colors cursor-pointer focus-luxe rounded ${
+                    isActive ? 'text-[#2E5A44]' : 'text-[#4B5563] hover:text-[#111827]'
+                  }`}
+                >
+                  {cat.label}
+                  <span
+                    className={`absolute left-3 right-3 -bottom-px h-0.5 rounded-full bg-[#2E5A44] transition-transform duration-300 ease-luxe origin-left ${
+                      isActive ? 'scale-x-100' : 'scale-x-0'
+                    }`}
+                  />
+                </button>
+              );
+            })}
+          </nav>
+
           {/* Mobile Search Bar Dropdown */}
           {isSearchOpen && (
             <div className="md:hidden pb-4">
@@ -320,9 +337,16 @@ export function Header({
             </div>
           )}
 
-          {/* Mobile Slide-Out Drawer */}
+          {/* Mobile Slide-Out Drawer — anchored to the header's own bottom edge so it
+              lands correctly whether or not the announcement bar is collapsed. */}
           {isMobileMenuOpen && (
-            <div className="md:hidden fixed inset-0 top-20 z-50 bg-black/50 backdrop-blur-xs flex flex-col justify-between animate-in fade-in duration-200">
+            <div className="md:hidden absolute left-0 right-0 top-full z-50 animate-fade-in">
+              {/* Backdrop, rendered behind the panel and dismissing on tap */}
+              <div
+                className="fixed inset-0 bg-black/50 backdrop-blur-xs -z-10"
+                onClick={() => setIsMobileMenuOpen(false)}
+                aria-hidden="true"
+              />
               <div className="bg-[#FDFBF7] p-6 space-y-6 border-b border-[#C6DFD1] shadow-2xl max-h-[80vh] overflow-y-auto">
                 {/* Search in mobile drawer */}
                 <div className="relative">
@@ -375,6 +399,8 @@ export function Header({
                     <span className="text-[10px] text-gray-400 font-mono uppercase">Portal</span>
                   </Link>
 
+                  {/* Gated to match the desktop header rather than always shown */}
+                  {(role === 'admin' || process.env.NODE_ENV !== 'production') && (
                   <Link
                     href="/admin"
                     onClick={() => setIsMobileMenuOpen(false)}
@@ -386,6 +412,7 @@ export function Header({
                     </span>
                     <span className="text-[10px] text-amber-400 font-mono uppercase">{role}</span>
                   </Link>
+                  )}
                 </div>
               </div>
             </div>

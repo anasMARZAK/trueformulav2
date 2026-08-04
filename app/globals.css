@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -12,6 +12,9 @@
   --font-instrument-serif: 'Instrument Serif', Georgia, serif;
   --font-plus-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
   --font-space-mono: 'Space Mono', Courier New, monospace;
+
+  /* Editorial rhythm */
+  --ease-luxe: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 body {
@@ -24,6 +27,12 @@ body {
 
 h1, h2, h3, .font-display {
   font-family: var(--font-instrument-serif);
+}
+
+/* Instrument Serif has a tall x-height and loose default tracking at display
+   sizes; pull it in so headlines read as one typographic unit. */
+h1, h2 {
+  letter-spacing: -0.02em;
 }
 
 /* Custom scrollbar */
@@ -60,7 +69,7 @@ h1, h2, h3, .font-display {
 
 /* Fluid card elevation lift */
 .card-luxe-lift {
-  transition: transform 300ms cubic-bezier(0.32, 0.72, 0, 1), box-shadow 300ms cubic-bezier(0.32, 0.72, 0, 1), border-color 300ms ease;
+  transition: transform 300ms var(--ease-luxe), box-shadow 300ms var(--ease-luxe), border-color 300ms ease;
 }
 
 .card-luxe-lift:hover {
@@ -74,6 +83,18 @@ h1, h2, h3, .font-display {
 .focus-luxe:focus-visible {
   outline: 2px solid #2E5A44;
   outline-offset: 2px;
+}
+
+/* Global keyboard-only focus fallback so every interactive element is reachable */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid #2E5A44;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Hero entry animations */
@@ -92,15 +113,28 @@ h1, h2, h3, .font-display {
 
 .hero-animate {
   opacity: 0;
-  animation: heroFadeUp 700ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  animation: heroFadeUp 700ms var(--ease-luxe) forwards;
 }
 
 .hero-delay-1 { animation-delay: 0ms; }
-.hero-delay-2 { animation-delay: 150ms; }
-.hero-delay-3 { animation-delay: 300ms; }
-.hero-delay-4 { animation-delay: 450ms; }
-.hero-delay-5 { animation-delay: 600ms; }
-.hero-delay-6 { animation-delay: 750ms; }
+.hero-delay-2 { animation-delay: 100ms; }
+.hero-delay-3 { animation-delay: 200ms; }
+.hero-delay-4 { animation-delay: 300ms; }
+.hero-delay-5 { animation-delay: 400ms; }
+.hero-delay-6 { animation-delay: 500ms; }
+
+/* Scroll-triggered section reveal, driven by the Reveal component */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 800ms var(--ease-luxe), transform 800ms var(--ease-luxe);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
 
 /* Noise overlay */
 .noise-overlay {
@@ -143,4 +177,85 @@ h1, h2, h3, .font-display {
   animation-play-state: paused;
 }
 
+/* Modal / dropdown entrance */
+@keyframes luxeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
+@keyframes luxePopIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.animate-fade-in {
+  animation: luxeFadeIn 200ms ease-out forwards;
+}
+
+.animate-pop-in {
+  animation: luxePopIn 180ms var(--ease-luxe) forwards;
+}
+
+/* Hide scrollbar on horizontal filter rails while keeping them scrollable */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Edge fade for horizontally scrolling rails — signals more content off-screen */
+.rail-fade {
+  -webkit-mask-image: linear-gradient(to right, transparent 0, #000 20px, #000 calc(100% - 28px), transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0, #000 20px, #000 calc(100% - 28px), transparent 100%);
+}
+
+@media (min-width: 1024px) {
+  .rail-fade {
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+/* Hairline gold rule used as an editorial section divider */
+.rule-gold {
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(212, 175, 55, 0.5), transparent);
+}
+
+/* Balanced headline wrapping — avoids orphan words in display type */
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Respect the OS reduced-motion setting across every decorative animation */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .hero-animate,
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+
+  .animate-marquee-slow {
+    animation: none;
+    transform: none;
+  }
+
+  .card-luxe-lift:hover {
+    transform: none;
+  }
+}

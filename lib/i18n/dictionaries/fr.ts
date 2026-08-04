@@ -38,8 +38,14 @@ export const fr: Dictionary = {
     },
   },
   catalog: {
+    badge: 'La Collection',
     title: 'La Collection Apothicaire',
     subtitle: 'Élaborée pour l’hydratation cellulaire, la synthèse musculaire rapide et la vitalité globale.',
+    filtersLabel: 'Affiner',
+    maxPriceLabel: 'Prix max',
+    resultsCount: 'formules',
+    inStock: 'En stock',
+    lowStock: 'Stock limité',
     searchPlaceholder: 'Rechercher par nom de formule, ingrédient actif ou saveur...',
     sortLabel: 'Trier par',
     categories: {
@@ -54,6 +60,7 @@ export const fr: Dictionary = {
     },
     sortOptions: {
       featured: 'Formules En Vedette',
+      popularity: 'Les Plus Populaires',
       priceAsc: 'Prix : Croissant',
       priceDesc: 'Prix : Décroissant',
       nameAsc: 'Alphabétique : A-Z',
@@ -334,5 +341,51 @@ export const fr: Dictionary = {
     subtitle: 'Des résultats concrets de personnes qui ont adopté la nutrition bio-luxe.',
     verifiedBadge: 'Acheteur Vérifié',
     readMore: 'Voir Tous les Avis',
+    purchasedLabel: 'Achat',
+    stats: {
+      rating: 'Note Moyenne',
+      reviews: 'Avis Vérifiés',
+      recommend: 'Recommandent',
+      subscribers: 'Abonnés Actifs',
+    },
+  },
+  protocol: {
+    badge: 'Le Protocole d’Abonnement',
+    title: 'Votre régime, au rythme que vous choisissez.',
+    subtitle:
+      'L’abonnement est le mode d’achat de la plupart de nos membres : il fixe la remise de 20 % et garantit que la boîte arrive avant que vous soyez à court. Aucun engagement, aucun appel à passer.',
+    steps: {
+      choose: {
+        title: 'Choisissez votre formule',
+        desc: 'Sélectionnez « Abonnement & Économies » lors du paiement. Votre tarif membre de -20 % s’applique dès la première commande.',
+      },
+      cadence: {
+        title: 'Définissez votre cadence',
+        desc: 'La livraison mensuelle est proposée par défaut et convient à une boîte de 30 portions. Modifiez l’intervalle selon votre charge d’entraînement.',
+      },
+      adjust: {
+        title: 'Suspendez ou annulez',
+        desc: 'Tout se gère depuis votre portail membre. En déplacement un mois ? Suspendez. Vous changez de formule ? Annulez — sans appel de rétention.',
+      },
+    },
+    footnote: 'Les membres économisent 20 % sur chaque commande récurrente, livraison express offerte dès 75 $.',
+    cta: 'Parcourir la collection',
+  },
+  footer: {
+    collections: 'Collections',
+    club: 'Club Apothicaire',
+    gazette: 'Gazette Apothicaire',
+    gazetteText: 'Nouvelles formulations et notes de recherche. Environ une fois par mois, jamais plus.',
+    emailPlaceholder: 'votre@email.com',
+    join: 'Rejoindre',
+    subscribed: 'Vous êtes inscrit.',
+    invalidEmail: 'Veuillez saisir une adresse e-mail valide.',
+    perks: {
+      discount: 'Remise abonné de 20 %',
+      cycles: 'Cycles de livraison flexibles',
+      cancel: 'Suspendre ou annuler à tout moment',
+    },
+    rights: 'Tous droits réservés.',
+    tagline: 'Apothicaire Éditorial & Nutrition Sportive Bio-Luxe',
   },
 };

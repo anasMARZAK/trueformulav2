@@ -36,8 +36,14 @@ export const en = {
     },
   },
   catalog: {
+    badge: 'The Collection',
     title: 'The Apothecary Collection',
     subtitle: 'Engineered for cellular hydration, rapid muscle synthesis, and total vitality.',
+    filtersLabel: 'Refine',
+    maxPriceLabel: 'Max price',
+    resultsCount: 'formulations',
+    inStock: 'In stock',
+    lowStock: 'Low stock',
     searchPlaceholder: 'Search by formula name, active ingredient, or flavor...',
     sortLabel: 'Sort by',
     categories: {
@@ -52,6 +58,7 @@ export const en = {
     },
     sortOptions: {
       featured: 'Featured Formulations',
+      popularity: 'Most Popular',
       priceAsc: 'Price: Low to High',
       priceDesc: 'Price: High to Low',
       nameAsc: 'Alphabetical: A-Z',
@@ -332,6 +339,52 @@ export const en = {
     subtitle: 'Real results from real people who made the switch to bio-luxe nutrition.',
     verifiedBadge: 'Verified Buyer',
     readMore: 'Read All Reviews',
+    purchasedLabel: 'Purchased',
+    stats: {
+      rating: 'Average Rating',
+      reviews: 'Verified Reviews',
+      recommend: 'Would Recommend',
+      subscribers: 'Active Subscribers',
+    },
+  },
+  protocol: {
+    badge: 'The Subscription Protocol',
+    title: 'Your regimen, on a schedule you control.',
+    subtitle:
+      'Subscribing is how most of our members buy — it locks in 20% off and means the tin arrives before you run out. There is no contract, and nothing to phone in.',
+    steps: {
+      choose: {
+        title: 'Choose your formula',
+        desc: 'Pick any product and select "Subscribe & Save" at checkout. Your 20% member price applies from the first order onward.',
+      },
+      cadence: {
+        title: 'Set your cadence',
+        desc: 'Monthly delivery is the default and suits a standard 30-serving tin. Change the interval whenever your training load changes.',
+      },
+      adjust: {
+        title: 'Pause, skip, or cancel',
+        desc: 'Everything is self-serve from your member portal. Travelling for a month? Pause it. Done with a formula? Cancel it — no retention call.',
+      },
+    },
+    footnote: 'Members save 20% on every recurring order, with free express shipping over $75.',
+    cta: 'Browse the collection',
+  },
+  footer: {
+    collections: 'Collections',
+    club: 'Apothecary Club',
+    gazette: 'Apothecary Gazette',
+    gazetteText: 'Formulation releases and research briefs. Roughly once a month, never more.',
+    emailPlaceholder: 'your@email.com',
+    join: 'Join',
+    subscribed: "You're on the list.",
+    invalidEmail: 'Please enter a valid email address.',
+    perks: {
+      discount: '20% subscriber discount',
+      cycles: 'Flexible delivery cycles',
+      cancel: 'Pause or cancel anytime',
+    },
+    rights: 'All rights reserved.',
+    tagline: 'Editorial Apothecary & Bio-Luxe Sport Nutrition',
   },
 };
 

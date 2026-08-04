@@ -2,10 +2,11 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Star, ShoppingBag, Eye, Check, RefreshCw } from 'lucide-react';
+import { Star, ShoppingBag, Eye, Check } from 'lucide-react';
 import { type Product } from '@/lib/db/schema';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useCartStore } from '@/lib/store/useCartStore';
+import { getFlavorSwatch } from '@/lib/ui/flavor-colors';
 import { toast } from 'sonner';
 
 interface ProductCardProps {
@@ -24,14 +25,13 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
   const flavors = (product.flavors as string[]) || ['Default'];
   const sizes = (product.sizes as string[]) || ['Standard'];
 
-  const [selectedFlavor, setSelectedFlavor] = useState<string>(flavors[0] || 'Default');
-  const [selectedSize, setSelectedSize] = useState<string>(sizes[0] || 'Standard');
-  const [purchaseType, setPurchaseType] = useState<'one_time' | 'subscription'>('one_time');
   const [isAdded, setIsAdded] = useState(false);
 
   const basePrice = parseFloat(product.price);
   const subscriptionPrice = basePrice * 0.8;
-  const effectivePrice = purchaseType === 'subscription' ? subscriptionPrice : basePrice;
+
+  const stock = typeof product.stock === 'number' ? product.stock : null;
+  const isLowStock = stock !== null && stock > 0 && stock <= 100;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -43,15 +43,15 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
       unitPrice: basePrice,
       imageUrl: product.imageUrl,
       category: product.category,
-      selectedFlavor,
-      selectedSize,
-      purchaseType,
+      selectedFlavor: flavors[0] || 'Default',
+      selectedSize: sizes[0] || 'Standard',
+      purchaseType: 'one_time',
       quantity: 1,
     });
 
     setIsAdded(true);
     toast.success(t.toasts.itemAdded, {
-      description: `${productName} (${selectedFlavor}, ${selectedSize})`,
+      description: `${productName} (${flavors[0]}, ${sizes[0]})`,
     });
 
     openCart();
@@ -59,133 +59,134 @@ export function ProductCard({ product, onQuickView }: ProductCardProps) {
   };
 
   return (
-    <div
+    <article
       onClick={() => onQuickView(product)}
-      className="group bg-[#FDFBF7] rounded-[2rem] border border-[#EAF2ED] hover:border-[#2E5A44]/60 card-luxe-lift shadow-luxe-card hover:shadow-luxe-card-hover flex flex-col justify-between overflow-hidden cursor-pointer focus-luxe transition-all duration-500"
+      className="group bg-white rounded-[1.75rem] border border-[#EAF2ED] hover:border-[#C6DFD1] card-luxe-lift shadow-luxe-card hover:shadow-luxe-card-hover flex flex-col overflow-hidden cursor-pointer focus-luxe"
     >
-      <div>
-        {/* Top Image Box with Hero Gradient (#F5F0E4 to #FDFBF7) */}
-        <div
-          className="relative w-full h-64 sm:h-72 p-6 flex items-center justify-center border-b border-[#EAF2ED] overflow-hidden"
-          style={{
-            background: 'linear-gradient(180deg, #F5F0E4 0%, #FDFBF7 100%)',
-          }}
-        >
-          {/* Floating Luxury Badges in Hero Style */}
-          <div className="absolute top-4 left-4 z-10 flex flex-col space-y-1.5">
-            <span className="bg-[#2E5A44] text-white text-[10px] font-bold uppercase tracking-[0.15em] px-3 py-1 rounded-full shadow-2xs font-sans">
-              {t.catalog.categories[product.category as keyof typeof t.catalog.categories] || product.category}
+      {/* ── Image plate ──────────────────────────────────────────────────── */}
+      <div
+        className="relative w-full h-60 sm:h-64 flex items-center justify-center border-b border-[#EAF2ED] overflow-hidden"
+        style={{ background: 'linear-gradient(180deg, #F5F0E4 0%, #FDFBF7 100%)' }}
+      >
+        {/* Only genuinely differentiating badges live on the plate — the "-20% sub"
+            note moved into the price row, where the number it modifies actually is. */}
+        <div className="absolute top-4 left-4 z-10 flex flex-col items-start gap-1.5">
+          <span className="bg-white/85 backdrop-blur-[2px] text-[#2E5A44] border border-[#C6DFD1] text-[10px] font-bold uppercase tracking-[0.14em] px-2.5 py-1 rounded-full font-sans">
+            {t.catalog.categories[product.category as keyof typeof t.catalog.categories] || product.category}
+          </span>
+          {product.isFeatured && (
+            <span className="bg-[#111827] text-white text-[9px] font-bold uppercase tracking-[0.14em] px-2.5 py-1 rounded-full font-sans">
+              ★ {language === 'fr' ? 'Sélection' : 'House Pick'}
             </span>
-            {product.isFeatured && (
-              <span className="bg-[#111827] text-white text-[9px] font-bold uppercase tracking-[0.15em] px-2.5 py-0.5 rounded-full shadow-2xs font-sans">
-                ★ True Formula
+          )}
+        </div>
+
+        <div className="relative w-full h-full p-6">
+          <Image
+            src={product.imageUrl}
+            alt={productName}
+            fill
+            className="object-contain mix-blend-multiply transition-transform duration-700 ease-luxe group-hover:scale-[1.06]"
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 25vw"
+          />
+        </div>
+
+        {/* Quick view — hover on pointer devices, always tappable via the card itself */}
+        <div className="absolute inset-x-0 bottom-0 p-4 flex justify-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 ease-luxe z-20">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onQuickView(product);
+            }}
+            className="px-5 py-2.5 bg-[#111827]/90 backdrop-blur-sm text-white text-xs font-bold rounded-full shadow-luxe hover:bg-[#2E5A44] transition-colors flex items-center gap-2 cursor-pointer focus-luxe font-sans"
+          >
+            <Eye className="w-4 h-4" />
+            <span>{t.product.quickView}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* ── Content ──────────────────────────────────────────────────────── */}
+      <div className="p-5 sm:p-6 flex flex-col flex-1">
+        {/* Rating + flavor swatches */}
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-1">
+            <Star className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
+            <span className="text-[11px] font-bold text-[#111827] font-sans">4.9</span>
+          </div>
+
+          {/* Swatches now carry the flavor, not just decoration */}
+          <div className="flex items-center gap-1.5">
+            {flavors.slice(0, 4).map((flavor) => {
+              const swatch = getFlavorSwatch(flavor);
+              return (
+                <span
+                  key={flavor}
+                  title={flavor}
+                  aria-label={flavor}
+                  className="w-3 h-3 rounded-full"
+                  style={{
+                    backgroundColor: swatch.color,
+                    boxShadow: `inset 0 0 0 1px ${swatch.ring}`,
+                  }}
+                />
+              );
+            })}
+            {flavors.length > 4 && (
+              <span className="text-[10px] text-[#6B7280] font-semibold font-sans">
+                +{flavors.length - 4}
               </span>
             )}
           </div>
-
-          <div className="absolute top-4 right-4 z-10">
-            <span className="bg-white/90 backdrop-blur-xs text-[#2E5A44] text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center space-x-1 border border-[#C6DFD1] shadow-2xs font-sans">
-              <RefreshCw className="w-3 h-3" />
-              <span>-20% Sub</span>
-            </span>
-          </div>
-
-          {/* Product Image Filling Container & Blended Seamlessly */}
-          <div className="relative w-full h-full p-2 flex items-center justify-center">
-            <Image
-              src={product.imageUrl}
-              alt={productName}
-              fill
-              className="object-contain mix-blend-multiply drop-shadow-xs transition-transform duration-700 ease-out group-hover:scale-108"
-              sizes="(max-width: 768px) 100vw, 33vw"
-            />
-          </div>
-
-          {/* Quick View Floating Glass Overlay Button */}
-          <div className="absolute inset-0 bg-black/5 backdrop-blur-[1px] opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center z-20">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onQuickView(product);
-              }}
-              className="px-5 py-2.5 bg-white text-[#111827] text-xs font-bold rounded-full shadow-lg hover:bg-[#2E5A44] hover:text-white transition-all flex items-center space-x-2 cursor-pointer focus-luxe scale-95 group-hover:scale-100 duration-300 font-sans"
-            >
-              <Eye className="w-4 h-4" />
-              <span>{t.product.quickView}</span>
-            </button>
-          </div>
         </div>
 
-        {/* Content Section */}
-        <div className="p-6 space-y-3">
-          {/* Ratings & Flavor Swatch Preview */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-1 text-amber-500 text-xs">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-3.5 h-3.5 fill-[#D4AF37] text-[#D4AF37]" />
-              ))}
-              <span className="text-[#4B5563] font-bold ml-1 text-[11px] font-sans">(4.9)</span>
-            </div>
+        <h3 className="font-serif text-xl sm:text-[1.4rem] font-bold text-[#111827] group-hover:text-[#2E5A44] transition-colors leading-snug line-clamp-2">
+          {productName}
+        </h3>
 
-            {/* Flavor Swatch Preview Dots */}
-            <div className="flex items-center space-x-1">
-              {flavors.slice(0, 3).map((fl, idx) => (
-                <span
-                  key={idx}
-                  title={fl}
-                  className="w-2.5 h-2.5 rounded-full border border-[#C6DFD1] bg-[#EAF2ED] shadow-2xs"
-                />
-              ))}
-              {flavors.length > 3 && (
-                <span className="text-[9px] text-[#6B7280] font-bold font-sans">+{flavors.length - 3}</span>
-              )}
-            </div>
+        <p className="mt-2 text-[13px] text-[#6B7280] font-light leading-relaxed line-clamp-2 font-sans">
+          {productDesc}
+        </p>
+
+        {/* Price block — one clear number, with the member price as a subordinate line */}
+        <div className="mt-auto pt-5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-2xl font-bold text-[#111827] font-mono tracking-tight">
+              ${basePrice.toFixed(2)}
+            </span>
+            {isLowStock && (
+              <span className="ml-auto text-[10px] font-bold uppercase tracking-[0.12em] text-[#B45309] font-sans">
+                {t.catalog.lowStock}
+              </span>
+            )}
           </div>
-
-          {/* Title in Hero Serif Typography */}
-          <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#111827] group-hover:text-[#2E5A44] transition-colors line-clamp-1">
-            {productName}
-          </h3>
-
-          <p className="text-xs text-[#4B5563] font-light leading-relaxed line-clamp-2 font-sans">
-            {productDesc}
+          <p className="mt-1 text-[11px] text-[#2E5A44] font-semibold font-sans">
+            <span className="font-mono">${subscriptionPrice.toFixed(2)}</span>
+            {language === 'fr' ? ' /mois avec abonnement' : ' /mo with subscription'}
           </p>
 
-          {/* Price & Subscription Pill */}
-          <div className="flex items-baseline justify-between pt-2">
-            <span className="text-xl font-bold text-[#111827] font-mono">${basePrice.toFixed(2)}</span>
-            <span className="text-[11px] text-[#2E5A44] bg-[#EAF2ED] px-3 py-1 rounded-full font-bold border border-[#C6DFD1] font-mono">
-              ${subscriptionPrice.toFixed(2)}/mo
-            </span>
-          </div>
+          <button
+            onClick={handleAddToCart}
+            className={`mt-4 w-full py-3.5 px-5 rounded-full font-bold text-xs uppercase tracking-[0.12em] transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer focus-luxe font-sans ${
+              isAdded
+                ? 'bg-[#2E5A44] text-white'
+                : 'bg-[#111827] hover:bg-[#2E5A44] text-white shadow-luxe hover:shadow-luxe-lg'
+            }`}
+          >
+            {isAdded ? (
+              <>
+                <Check className="w-4 h-4" />
+                <span>{t.product.addedToCart}</span>
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="w-4 h-4" />
+                <span>{t.product.addToCart}</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
-
-      {/* Card Footer Action Button matching Hero Primary CTA */}
-      <div className="p-6 pt-0 mt-1">
-        <button
-          onClick={handleAddToCart}
-          className={`w-full py-3.5 px-5 rounded-full font-bold text-xs uppercase tracking-wider transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer focus-luxe font-sans ${
-            isAdded
-              ? 'bg-emerald-800 text-white shadow-md'
-              : 'bg-[#111827] hover:bg-[#1f2937] text-white shadow-luxe hover:shadow-luxe-lg'
-          }`}
-        >
-          {isAdded ? (
-            <>
-              <Check className="w-4 h-4 text-emerald-300" />
-              <span>{t.product.addedToCart}</span>
-            </>
-          ) : (
-            <>
-              <ShoppingBag className="w-4 h-4 text-white" />
-              <span>
-                {t.product.addToCart} — ${basePrice.toFixed(2)}
-              </span>
-            </>
-          )}
-        </button>
-      </div>
-    </div>
+    </article>
   );
 }

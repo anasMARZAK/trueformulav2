@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { type Subscription } from '@/lib/db/schema';
-import { Search, RefreshCw, Filter, Pause, Play, XCircle, CreditCard, Calendar, UserCheck } from 'lucide-react';
+import { Search, RefreshCw, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface EnrichedSub extends Subscription {
@@ -12,11 +12,19 @@ interface EnrichedSub extends Subscription {
   userEmail?: string;
 }
 
+type StatusFilter = 'all' | 'active' | 'paused' | 'cancelled';
+
+const STATUS_BADGE: Record<string, string> = {
+  active: 'bg-[#EAF2ED] text-[#2E5A44] border-[#C6DFD1]',
+  paused: 'bg-[#FEF6E7] text-[#8A5C29] border-[#F0D9A8]',
+  cancelled: 'bg-[#F5F0E4] text-[#6B7280] border-[#E5E2D9]',
+};
+
 export function AdminSubsOverview() {
   const { language, t } = useLanguage();
   const [subscriptions, setSubscriptions] = useState<EnrichedSub[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'cancelled'>('all');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchSubscriptions = async () => {
@@ -29,6 +37,7 @@ export function AdminSubsOverview() {
       }
     } catch (err) {
       console.error('Failed to fetch subscriptions:', err);
+      toast.error(t.toasts.errorOccurred);
     } finally {
       setIsLoading(false);
     }
@@ -39,6 +48,11 @@ export function AdminSubsOverview() {
   }, []);
 
   const handleUpdateStatus = async (id: string, newStatus: 'active' | 'paused' | 'cancelled') => {
+    // Cancelling is not reversible from this table, so confirm it first.
+    if (newStatus === 'cancelled' && !window.confirm(t.portal.confirmCancelText)) {
+      return;
+    }
+
     try {
       const res = await fetch(`/api/subscriptions/${id}`, {
         method: 'PATCH',
@@ -61,98 +75,97 @@ export function AdminSubsOverview() {
 
   const filteredSubs = subscriptions.filter((sub) => {
     const matchesStatus = statusFilter === 'all' || sub.status === statusFilter;
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return matchesStatus;
     const email = (sub.userEmail || (sub.shippingAddress as any)?.email || sub.userId || '').toLowerCase();
     const prodName = (sub.productNameEn || sub.productId || '').toLowerCase();
-
-    const matchesSearch = email.includes(q) || prodName.includes(q) || sub.id.toLowerCase().includes(q);
-    return matchesStatus && matchesSearch;
+    return matchesStatus && (email.includes(q) || prodName.includes(q) || sub.id.toLowerCase().includes(q));
   });
 
   const isEn = language === 'en';
 
+  const filters: Array<{ key: StatusFilter; label: string }> = [
+    { key: 'all', label: t.admin.subscriptions.filterAll },
+    { key: 'active', label: t.admin.subscriptions.filterActive },
+    { key: 'paused', label: t.admin.subscriptions.filterPaused },
+    { key: 'cancelled', label: t.admin.subscriptions.filterCancelled },
+  ];
+
   return (
     <div className="space-y-4">
-      {/* Controls Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 bg-white p-4 border border-[#C6DFD1] rounded-3xl shadow-sm">
-        {/* Search */}
-        <div className="relative w-full sm:w-80">
+      {/* Controls */}
+      <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white p-4 border border-[#E5E2D9] rounded-2xl shadow-luxe-card">
+        <div className="relative w-full lg:w-80">
+          <Search className="w-4 h-4 text-[#9CA3AF] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.admin.subscriptions.searchPlaceholder}
-            className="w-full pl-9 pr-4 py-2 bg-[#FDFBF7] border border-[#C6DFD1] rounded-full text-xs font-sans focus:ring-2 focus:ring-[#2E5A44]/30 outline-none"
+            className="w-full pl-10 pr-4 py-2.5 bg-[#FDFBF7] border border-[#E5E2D9] rounded-full text-xs font-sans placeholder:text-[#9CA3AF] focus:ring-2 focus:ring-[#2E5A44]/30 focus:border-[#2E5A44] outline-none transition-all"
           />
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
         </div>
 
-        {/* Status Filter Tabs */}
-        <div className="flex items-center space-x-1 bg-[#EAF2ED] p-1 rounded-full border border-[#C6DFD1] text-xs font-semibold">
+        <div className="flex items-center gap-2 flex-wrap justify-center">
+          <div className="flex items-center gap-1 bg-[#F5F0E4]/70 p-1 rounded-full border border-[#E5E2D9] text-[11px] font-bold">
+            {filters.map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setStatusFilter(f.key)}
+                aria-pressed={statusFilter === f.key}
+                className={`px-3 py-1.5 rounded-full transition-all cursor-pointer focus-luxe whitespace-nowrap ${
+                  statusFilter === f.key
+                    ? 'bg-[#2E5A44] text-white shadow-sm'
+                    : 'text-[#6B7280] hover:text-[#111827]'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
           <button
-            onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1 rounded-full transition-all ${
-              statusFilter === 'all' ? 'bg-[#2E5A44] text-white shadow-xs' : 'text-gray-600 hover:text-[#111827]'
-            }`}
+            onClick={fetchSubscriptions}
+            aria-label="Refresh subscriptions"
+            className="p-2 rounded-full border border-[#E5E2D9] text-[#2E5A44] hover:bg-[#EAF2ED] hover:border-[#2E5A44] transition-all cursor-pointer focus-luxe"
           >
-            {t.admin.subscriptions.filterAll}
-          </button>
-          <button
-            onClick={() => setStatusFilter('active')}
-            className={`px-3 py-1 rounded-full transition-all ${
-              statusFilter === 'active' ? 'bg-emerald-600 text-white shadow-xs' : 'text-gray-600 hover:text-[#111827]'
-            }`}
-          >
-            {t.admin.subscriptions.filterActive}
-          </button>
-          <button
-            onClick={() => setStatusFilter('paused')}
-            className={`px-3 py-1 rounded-full transition-all ${
-              statusFilter === 'paused' ? 'bg-amber-600 text-white shadow-xs' : 'text-gray-600 hover:text-[#111827]'
-            }`}
-          >
-            {t.admin.subscriptions.filterPaused}
-          </button>
-          <button
-            onClick={() => setStatusFilter('cancelled')}
-            className={`px-3 py-1 rounded-full transition-all ${
-              statusFilter === 'cancelled' ? 'bg-red-600 text-white shadow-xs' : 'text-gray-600 hover:text-[#111827]'
-            }`}
-          >
-            {t.admin.subscriptions.filterCancelled}
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </div>
 
-      {/* Subscriptions Table */}
-      <div className="bg-white border border-[#C6DFD1] rounded-3xl overflow-hidden shadow-sm">
+      {/* Table */}
+      <div className="bg-white border border-[#E5E2D9] rounded-2xl overflow-hidden shadow-luxe-card">
         {isLoading ? (
-          <div className="py-12 text-center text-gray-500 font-sans text-xs">
-            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-2 text-[#2E5A44]" />
+          <div className="py-16 text-center text-[#6B7280] font-sans text-xs">
+            <RefreshCw className="w-6 h-6 animate-spin mx-auto mb-3 text-[#2E5A44]" />
             <span>{t.admin.subscriptions.loadingSubs}</span>
           </div>
         ) : filteredSubs.length === 0 ? (
-          <div className="py-12 text-center text-gray-500 font-sans text-xs">
-            <p className="font-bold text-gray-700">{t.admin.subscriptions.noSubsFound}</p>
+          <div className="py-16 text-center">
+            <Inbox className="w-7 h-7 text-[#C6DFD1] mx-auto mb-3" />
+            <p className="font-serif text-lg font-bold text-[#111827]">
+              {t.admin.subscriptions.noSubsFound}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="bg-[#EAF2ED]/60 border-b border-[#C6DFD1] text-[11px] font-bold text-gray-700 uppercase tracking-wider">
-                  <th className="py-4 px-6">{t.admin.subscriptions.subIdHeader}</th>
-                  <th className="py-4 px-6">{t.admin.subscriptions.user}</th>
-                  <th className="py-4 px-6">{t.admin.subscriptions.product}</th>
-                  <th className="py-4 px-6">{t.admin.subscriptions.billingDate}</th>
-                  <th className="py-4 px-6">{t.admin.subscriptions.amount}</th>
-                  <th className="py-4 px-6">{t.admin.subscriptions.status}</th>
-                  <th className="py-4 px-6 text-right">{t.admin.subscriptions.actions}</th>
+                <tr className="bg-[#F5F0E4]/60 border-b border-[#E5E2D9] text-[10px] font-bold text-[#6B7280] uppercase tracking-[0.14em]">
+                  <th className="py-3.5 px-5">{t.admin.subscriptions.subIdHeader}</th>
+                  <th className="py-3.5 px-5">{t.admin.subscriptions.user}</th>
+                  <th className="py-3.5 px-5">{t.admin.subscriptions.product}</th>
+                  <th className="py-3.5 px-5">{t.admin.subscriptions.billingDate}</th>
+                  <th className="py-3.5 px-5 text-right">{t.admin.subscriptions.amount}</th>
+                  <th className="py-3.5 px-5">{t.admin.subscriptions.status}</th>
+                  <th className="py-3.5 px-5 text-right">{t.admin.subscriptions.actions}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100 text-xs font-sans">
+              <tbody className="divide-y divide-[#EAF2ED] text-xs font-sans">
                 {filteredSubs.map((sub) => {
                   const customerEmail =
-                    (sub.shippingAddress as any)?.email || sub.userEmail || sub.userId || 'customer@example.com';
+                    (sub.shippingAddress as any)?.email || sub.userEmail || sub.userId || '—';
                   const prodName = isEn
                     ? sub.productNameEn || sub.productId
                     : sub.productNameFr || sub.productId;
@@ -163,71 +176,69 @@ export function AdminSubsOverview() {
                   );
 
                   return (
-                    <tr key={sub.id} className="hover:bg-[#FDFBF7]/80 transition-colors">
-                      <td className="py-4 px-6 font-mono font-bold text-[#2E5A44]">
-                        {sub.id}
+                    <tr key={sub.id} className="hover:bg-[#FDFBF7] transition-colors">
+                      <td className="py-4 px-5 font-mono font-bold text-[#2E5A44] whitespace-nowrap">
+                        {sub.id.slice(0, 8)}
                       </td>
 
-                      <td className="py-4 px-6 text-gray-900 font-medium">
-                        {customerEmail}
+                      <td className="py-4 px-5 text-[#111827] font-medium">
+                        <span className="block truncate max-w-[180px]">{customerEmail}</span>
                       </td>
 
-                      <td className="py-4 px-6 font-semibold text-gray-800">
+                      <td className="py-4 px-5 font-semibold text-[#111827]">
                         {prodName}
                         {(sub.selectedFlavor || sub.selectedSize) && (
-                          <div className="text-[10px] text-gray-400 font-normal">
+                          <div className="text-[10px] text-[#9CA3AF] font-normal mt-0.5">
                             {[sub.selectedFlavor, sub.selectedSize].filter(Boolean).join(' · ')}
                           </div>
                         )}
                       </td>
 
-                      <td className="py-4 px-6 font-mono text-gray-600 whitespace-nowrap">
+                      <td className="py-4 px-5 font-mono text-[#6B7280] whitespace-nowrap">
                         {formattedBillingDate}
                       </td>
 
-                      <td className="py-4 px-6 font-mono font-bold text-gray-900">
-                        ${sub.pricePerBilling}
+                      <td className="py-4 px-5 font-mono font-bold text-[#111827] text-right tabular-nums whitespace-nowrap">
+                        ${parseFloat(String(sub.pricePerBilling || '0')).toFixed(2)}
                       </td>
 
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-5">
                         <span
-                          className={`text-[10px] uppercase font-mono font-bold px-2.5 py-0.5 rounded-full border ${
-                            sub.status === 'active'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                              : sub.status === 'paused'
-                              ? 'bg-amber-50 text-amber-700 border-amber-200'
-                              : 'bg-red-50 text-red-700 border-red-200'
+                          className={`inline-block text-[10px] uppercase font-bold tracking-wide px-2.5 py-1 rounded-full border ${
+                            STATUS_BADGE[sub.status] || STATUS_BADGE.cancelled
                           }`}
                         >
                           {t.portal.status[sub.status] || sub.status}
                         </span>
                       </td>
 
-                      <td className="py-4 px-6 text-right space-x-1">
-                        {sub.status === 'active' && (
-                          <button
-                            onClick={() => handleUpdateStatus(sub.id, 'paused')}
-                            className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg text-[10px] font-bold border border-amber-200 transition-colors"
-                          >
-                            {t.portal.pauseSub}
-                          </button>
-                        )}
-                        {sub.status === 'paused' && (
-                          <button
-                            onClick={() => handleUpdateStatus(sub.id, 'active')}
-                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 rounded-lg text-[10px] font-bold border border-emerald-200 transition-colors"
-                          >
-                            {t.portal.resumeSub}
-                          </button>
-                        )}
-                        {sub.status !== 'cancelled' && (
-                          <button
-                            onClick={() => handleUpdateStatus(sub.id, 'cancelled')}
-                            className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-700 rounded-lg text-[10px] font-bold border border-red-200 transition-colors"
-                          >
-                            {t.portal.cancelSub}
-                          </button>
-                        )}
+                      <td className="py-4 px-5 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5">
+                          {sub.status === 'active' && (
+                            <button
+                              onClick={() => handleUpdateStatus(sub.id, 'paused')}
+                              className="px-2.5 py-1.5 bg-[#FEF6E7] hover:bg-[#FBEBCF] text-[#8A5C29] rounded-full text-[10px] font-bold border border-[#F0D9A8] transition-colors cursor-pointer focus-luxe"
+                            >
+                              {t.portal.pauseSub}
+                            </button>
+                          )}
+                          {sub.status === 'paused' && (
+                            <button
+                              onClick={() => handleUpdateStatus(sub.id, 'active')}
+                              className="px-2.5 py-1.5 bg-[#EAF2ED] hover:bg-[#DDF0E5] text-[#2E5A44] rounded-full text-[10px] font-bold border border-[#C6DFD1] transition-colors cursor-pointer focus-luxe"
+                            >
+                              {t.portal.resumeSub}
+                            </button>
+                          )}
+                          {sub.status !== 'cancelled' && (
+                            <button
+                              onClick={() => handleUpdateStatus(sub.id, 'cancelled')}
+                              className="px-2.5 py-1.5 bg-white hover:bg-[#FDECEC] text-[#9A3A3A] rounded-full text-[10px] font-bold border border-[#F2C9C9] transition-colors cursor-pointer focus-luxe"
+                            >
+                              {t.portal.cancelSub}
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   );
