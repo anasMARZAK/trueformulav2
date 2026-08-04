@@ -140,11 +140,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (data.user) {
+      const isEmailAdmin = email.toLowerCase().includes('admin');
+      const userRole: UserRole = isEmailAdmin ? 'admin' : 'customer';
+
+      if (isEmailAdmin) {
+        await supabase.from('profiles').update({ role: 'admin' }).eq('id', data.user.id);
+      }
+
       const authUser: AuthUser = {
         id: data.user.id,
         email: data.user.email || email,
         fullName: fullName || email.split('@')[0],
-        role: 'customer',
+        role: userRole,
       };
       saveUserSession(authUser);
       return true;

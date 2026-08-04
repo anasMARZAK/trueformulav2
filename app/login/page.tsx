@@ -120,6 +120,7 @@ export default function LoginPage() {
   const handleDemoSignIn = async (demoRole: 'customer' | 'admin') => {
     setIsLoading(true);
     const demoEmail = demoRole === 'admin' ? 'admin@trueformula.io' : 'customer@trueformula.io';
+    const fallbackEmail = demoRole === 'admin' ? 'admin@bioluxe.io' : 'customer@bioluxe.io';
     const demoPassword = demoRole === 'admin' ? 'Admin123!' : 'Customer123!';
     const demoName = demoRole === 'admin' ? 'Store Admin' : 'Jane Doe';
     setEmail(demoEmail);
@@ -129,7 +130,11 @@ export default function LoginPage() {
       try {
         await login(demoEmail, demoPassword);
       } catch (_) {
-        await register(demoEmail, demoPassword, demoName);
+        try {
+          await login(fallbackEmail, demoPassword);
+        } catch (_) {
+          await register(demoEmail, demoPassword, demoName);
+        }
       }
 
       toast.success(language === 'fr' ? 'Connexion réussie' : 'Demo Access Granted', {

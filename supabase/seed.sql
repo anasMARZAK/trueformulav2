@@ -25,7 +25,7 @@ VALUES
 (
   '00000000-0000-4000-a000-000000000001',
   '00000000-0000-0000-0000-000000000000',
-  'customer@bioluxe.io',
+  'customer@trueformula.io',
   crypt('Customer123!', gen_salt('bf', 10)),
   NOW(),
   NOW(),
@@ -43,7 +43,7 @@ VALUES
 (
   '00000000-0000-4000-a000-000000000002',
   '00000000-0000-0000-0000-000000000000',
-  'admin@bioluxe.io',
+  'admin@trueformula.io',
   crypt('Admin123!', gen_salt('bf', 10)),
   NOW(),
   NOW(),
@@ -71,7 +71,7 @@ VALUES
 (
   gen_random_uuid(),
   '00000000-0000-4000-a000-000000000001'::uuid,
-  '{"sub": "00000000-0000-4000-a000-000000000001", "email": "customer@bioluxe.io", "full_name": "Jane Doe", "email_verified": true}'::jsonb,
+  '{"sub": "00000000-0000-4000-a000-000000000001", "email": "customer@trueformula.io", "full_name": "Jane Doe", "email_verified": true}'::jsonb,
   'email',
   '00000000-0000-4000-a000-000000000001',
   NOW(),
@@ -81,7 +81,7 @@ VALUES
 (
   gen_random_uuid(),
   '00000000-0000-4000-a000-000000000002'::uuid,
-  '{"sub": "00000000-0000-4000-a000-000000000002", "email": "admin@bioluxe.io", "full_name": "Store Admin", "email_verified": true}'::jsonb,
+  '{"sub": "00000000-0000-4000-a000-000000000002", "email": "admin@trueformula.io", "full_name": "Store Admin", "email_verified": true}'::jsonb,
   'email',
   '00000000-0000-4000-a000-000000000002',
   NOW(),
@@ -97,14 +97,14 @@ INSERT INTO public.profiles (id, email, full_name, role, created_at)
 VALUES
 (
   '00000000-0000-4000-a000-000000000001',
-  'customer@bioluxe.io',
+  'customer@trueformula.io',
   'Jane Doe',
   'customer',
   NOW()
 ),
 (
   '00000000-0000-4000-a000-000000000002',
-  'admin@bioluxe.io',
+  'admin@trueformula.io',
   'Store Admin',
   'admin',
   NOW()
