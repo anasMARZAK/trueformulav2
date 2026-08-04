@@ -120,8 +120,8 @@ export class MockPaymentAdapter implements IPaymentService {
         }
       }
 
-      // Insert Order
-      const { error: orderErr } = await supabase.from('orders').insert([
+      // Insert Order (with fallback for legacy DB enum constraints where 'completed' is absent)
+      let { error: orderErr } = await supabase.from('orders').insert([
         {
           id: orderId,
           user_id: userId,
@@ -135,6 +135,25 @@ export class MockPaymentAdapter implements IPaymentService {
           shipping_address: request.shippingAddress,
         },
       ]);
+
+      if (orderErr && (orderErr.message.includes('order_status') || orderErr.code === '22P02')) {
+        console.warn('[MOCK PAYMENT ADAPTER] Fallback to status "processing" due to DB enum restriction');
+        const fallbackRes = await supabase.from('orders').insert([
+          {
+            id: orderId,
+            user_id: userId,
+            customer_email: request.userEmail || request.shippingAddress.email,
+            customer_name: request.shippingAddress.fullName,
+            total_amount: totalAmount,
+            total_cents: Math.round(totalAmount * 100),
+            subtotal_cents: Math.round(subtotal * 100),
+            shipping_cents: Math.round(shippingCost * 100),
+            status: 'processing',
+            shipping_address: request.shippingAddress,
+          },
+        ]);
+        orderErr = fallbackRes.error;
+      }
 
       if (orderErr) {
         console.error('[MOCK PAYMENT ADAPTER] Supabase order insert error:', orderErr);
@@ -350,8 +369,8 @@ export class MockPaymentAdapter implements IPaymentService {
 
           const idempotencyKey = `RENEW-${sub.id}-${now.toISOString().substring(0, 10)}`;
 
-          // 1. Create recurring order in Supabase
-          const { error: orderErr } = await supabase.from('orders').insert([
+          // 1. Create recurring order in Supabase (with fallback for legacy DB enum constraints)
+          let { error: orderErr } = await supabase.from('orders').insert([
             {
               id: orderId,
               user_id: sub.user_id,
@@ -369,6 +388,28 @@ export class MockPaymentAdapter implements IPaymentService {
               created_at: now.toISOString(),
             },
           ]);
+
+          if (orderErr && (orderErr.message.includes('order_status') || orderErr.code === '22P02')) {
+            const fallbackRes = await supabase.from('orders').insert([
+              {
+                id: orderId,
+                user_id: sub.user_id,
+                customer_email: sub.shipping_address?.email || 'customer@example.com',
+                customer_name: sub.shipping_address?.fullName || 'Customer',
+                status: 'processing',
+                total_amount: parseFloat(priceAmount),
+                total_cents: priceCents,
+                subtotal_cents: priceCents,
+                shipping_cents: 0,
+                idempotency_key: idempotencyKey,
+                currency: 'USD',
+                shipping_address: sub.shipping_address,
+                payment_method: 'recurring_subscription',
+                created_at: now.toISOString(),
+              },
+            ]);
+            orderErr = fallbackRes.error;
+          }
 
           if (orderErr) {
             // Idempotency check: if order already created today, skip (Task 3.2)

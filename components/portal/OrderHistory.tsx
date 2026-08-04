@@ -20,7 +20,7 @@ interface OrderItemDisplay {
 interface OrderDisplay {
   id: string;
   userId: string;
-  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  status: string;
   totalAmount: string;
   createdAt: string | Date;
   items: OrderItemDisplay[];
@@ -130,16 +130,16 @@ export function OrderHistory() {
                   <td className="py-4 px-6">
                     <span
                       className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        order.status === 'completed'
+                        order.status === 'completed' || order.status === 'delivered' || order.status === 'processing'
                           ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                           : order.status === 'pending'
                           ? 'bg-amber-50 text-amber-700 border border-amber-200'
                           : 'bg-red-50 text-red-700 border border-red-200'
                       }`}
                     >
-                      {order.status === 'completed' && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
+                      {(order.status === 'completed' || order.status === 'delivered' || order.status === 'processing') && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
                       {order.status === 'pending' && <Clock className="w-3 h-3 text-amber-600" />}
-                      {order.status === 'failed' && <XCircle className="w-3 h-3 text-red-600" />}
+                      {(order.status === 'failed' || order.status === 'cancelled') && <XCircle className="w-3 h-3 text-red-600" />}
                       <span>{order.status}</span>
                     </span>
                   </td>
