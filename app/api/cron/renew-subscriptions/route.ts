@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getPaymentAdapter } from '@/lib/payment';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   return handleRenewalCron(req);
 }

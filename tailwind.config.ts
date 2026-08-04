@@ -77,6 +77,7 @@ const config: Config = {
       animation: {
         'hero-fade-up': 'heroFadeUp 700ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
         'pop-in': 'luxePopIn 180ms cubic-bezier(0.32, 0.72, 0, 1) forwards',
+        'marquee-slow': 'marquee 50s linear infinite',
       },
       keyframes: {
         heroFadeUp: {
@@ -86,6 +87,10 @@ const config: Config = {
         luxePopIn: {
           '0%': { opacity: '0', transform: 'translateY(-6px) scale(0.98)' },
           '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        marquee: {
+          '0%': { transform: 'translateX(0%)' },
+          '100%': { transform: 'translateX(-50%)' },
         },
       },
     },

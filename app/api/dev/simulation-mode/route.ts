@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSimulationMode, setSimulationMode, SimulationMode } from '@/lib/payment';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   return NextResponse.json({ mode: getSimulationMode() });
 }

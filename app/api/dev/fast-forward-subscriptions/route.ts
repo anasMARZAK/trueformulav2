@@ -3,6 +3,8 @@ import { db, mockDb } from '@/lib/db';
 import { subscriptions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST() {
   try {
     const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000); // 1 day ago
