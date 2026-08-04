@@ -62,11 +62,16 @@ export async function POST(req: NextRequest) {
 
     // 2. Re-calculate verified unit prices server-side
     const verifiedItems = items.map((item) => {
-      // Extract clean product ID if client sent composite key
+      // Extract clean product ID if client sent composite key or variant alias
       let cleanProductId = item.productId;
       if (!productsMap.has(cleanProductId)) {
         for (const knownId of productsMap.keys()) {
-          if (cleanProductId.startsWith(knownId)) {
+          if (
+            cleanProductId.startsWith(knownId) ||
+            knownId.startsWith(cleanProductId) ||
+            knownId.includes(cleanProductId) ||
+            cleanProductId.includes(knownId)
+          ) {
             cleanProductId = knownId;
             break;
           }
