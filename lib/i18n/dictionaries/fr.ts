@@ -4,7 +4,7 @@ export const fr: Dictionary = {
   header: {
     logoTitle: 'TRUE FORMULA',
     logoTagline: 'NUTRITION DE QUALITÉ PHARMACEUTIQUE',
-    searchPlaceholder: 'Rechercher suppléments bio-luxe, protéines, créatine...',
+    searchPlaceholder: 'Rechercher suppléments True Formula, protéines, créatine...',
     categories: {
       all: 'Toutes les collections',
       whey: 'Protéines de Lactosérum',
@@ -21,7 +21,7 @@ export const fr: Dictionary = {
     languageToggle: 'Langue',
   },
   hero: {
-    badge: 'Apothicaire Bio-Luxe de Précision',
+    badge: 'Apothicaire True Formula de Précision',
     title: 'Votre Avantage. Formulé.',
     subtext: 'Isolats de lactosérum purs et créatines de qualité pharmaceutique. Zéro additif. -20% en souscrivant un abonnement.',
     exploreCta: 'Découvrir la Collection',
@@ -66,7 +66,7 @@ export const fr: Dictionary = {
       nameAsc: 'Alphabétique : A-Z',
     },
     emptyTitle: 'Aucune formule trouvée',
-    emptyText: 'Essayez d’ajuster votre recherche ou filtre de catégorie pour découvrir nos produits bio-luxe disponibles.',
+    emptyText: 'Essayez d’ajuster votre recherche ou filtre de catégorie pour découvrir nos produits True Formula disponibles.',
     resetFilters: 'Réinitialiser Tous les Filtres',
   },
   product: {
@@ -86,7 +86,7 @@ export const fr: Dictionary = {
     ingredientsLabel: 'Ingrédients Actifs',
     nutritionLabel: 'Valeurs Nutritionnelles (par portion)',
     directionsLabel: 'Conseils d’Utilisation',
-    bioLuxePurity: 'Garantie de Pureté Bio-Luxe',
+    trueformulaPurity: 'Garantie de Pureté True Formula',
     freeShipping: 'Éligible à la Livraison Express Gratuite',
     servingSize: 'Portion',
     servingsPerContainer: 'Portions par Pot',
@@ -98,7 +98,7 @@ export const fr: Dictionary = {
   cart: {
     title: 'Votre Commande Apothicaire',
     emptyTitle: 'Votre panier est actuellement vide',
-    emptyText: 'Explorez notre catalogue de suppléments de précision pour commencer votre routine bio-luxe.',
+    emptyText: 'Explorez notre catalogue de suppléments de précision pour commencer votre routine True Formula.',
     subtotal: 'Sous-total',
     subscriptionSavings: 'Économie Abonné (20%)',
     shipping: 'Livraison',
@@ -130,7 +130,7 @@ export const fr: Dictionary = {
     orderSummary: 'Récapitulatif de Commande',
     totalPaid: 'Total Facturé',
     successTitle: 'Commande Confirmée !',
-    successMessage: 'Merci d’avoir choisi ProteinShop. Votre commande est en cours de préparation.',
+    successMessage: 'Merci d’avoir choisi True Formula. Votre commande est en cours de préparation.',
   },
   auth: {
     loginTitle: 'Connexion à votre Compte',
@@ -158,7 +158,7 @@ export const fr: Dictionary = {
   },
   portal: {
     title: 'Espace Membre',
-    subtitle: 'Gérez vos abonnements récurrents bio-luxe et l’historique de vos commandes.',
+    subtitle: 'Gérez vos abonnements récurrents True Formula et l’historique de vos commandes.',
     mySubscriptions: 'Mes Abonnements Actifs',
     orderHistory: 'Historique des Commandes',
     accountOverview: 'Aperçu du Compte',
@@ -195,17 +195,17 @@ export const fr: Dictionary = {
     apothecaryMember: 'Membre Apothicaire',
     memberPrivilegeActive: 'Privilèges Membre Récurrent 20% Actifs',
     loadingSubscriptions: 'Chargement des abonnements membres...',
-    noSubscriptionsSubtext: 'Abonnez-vous à vos formules bio-luxe préférées lors du paiement pour débloquer 20% de privilèges membres récurrents.',
+    noSubscriptionsSubtext: 'Abonnez-vous à vos formules True Formula préférées lors du paiement pour débloquer 20% de privilèges membres récurrents.',
     subscriberPrivilegeBadge: 'Privilège Abonné 20% (-20%)',
     loadingOrders: 'Chargement de l’historique des commandes...',
-    noOrdersSubtext: 'Explorez notre catalogue apothicaire et passez votre première commande de suppléments bio-luxe.',
+    noOrdersSubtext: 'Explorez notre catalogue apothicaire et passez votre première commande de suppléments True Formula.',
     fallbackOrderItem: '1x Article Apothicaire',
   },
   admin: {
     title: 'Tableau de Bord Administration',
     subtitle: 'Analytique de plateforme, gestion des stocks, abonnements actifs et commandes client.',
     dashboard: 'Gestion du Catalogue et des Commandes',
-    portalBadge: 'Portail Administration Exécutive ProteinShop',
+    portalBadge: 'Portail Administration Exécutive True Formula',
     currentSessionRole: 'Rôle de la Session Actuelle',
     switchToAdmin: 'Passer en Mode Admin',
     viewingAsCustomerPrefix: 'Vous consultez actuellement le portail d’administration en tant que',
@@ -310,17 +310,17 @@ export const fr: Dictionary = {
     productDeleted: 'Formule de produit supprimée',
   },
   emails: {
-    orderConfirmationSubject: 'ProteinShop — Confirmation de Commande #',
+    orderConfirmationSubject: 'True Formula — Confirmation de Commande #',
     orderConfirmationBody: 'Merci pour votre achat. Votre commande est en cours de préparation dans nos ateliers bio-apothicaires.',
-    subscriptionRenewedSubject: 'ProteinShop — Abonnement Mensuel Renouvelé',
+    subscriptionRenewedSubject: 'True Formula — Abonnement Mensuel Renouvelé',
     subscriptionRenewedBody: 'Votre abonnement mensuel récurrent a été renouvelé et expédié automatiquement.',
-    subscriptionCancelledSubject: 'ProteinShop — Confirmation d’Annulation d’Abonnement',
+    subscriptionCancelledSubject: 'True Formula — Confirmation d’Annulation d’Abonnement',
     subscriptionCancelledBody: 'Votre abonnement a été annulé. Vous pouvez le réactiver à tout moment depuis votre espace membre.',
-    thankYou: 'Merci pour votre confiance envers ProteinShop.',
+    thankYou: 'Merci pour votre confiance envers True Formula.',
     viewOrder: 'Voir le Détail de la Commande',
   },
   valueProps: {
-    badge: 'Pourquoi ProteinShop',
+    badge: 'Pourquoi True Formula',
     title: 'Conçu pour Ceux Qui Exigent l\'Excellence',
     subtitle: 'Chaque formulation est élaborée avec une précision clinique — sans compromis, sans raccourcis.',
     props: {
@@ -338,7 +338,7 @@ export const fr: Dictionary = {
   reviews: {
     badge: 'Témoignages Clients',
     title: 'La Confiance des Athlètes & Passionnés de Bien-être',
-    subtitle: 'Des résultats concrets de personnes qui ont adopté la nutrition bio-luxe.',
+    subtitle: 'Des résultats concrets de personnes qui ont adopté la nutrition True Formula.',
     verifiedBadge: 'Acheteur Vérifié',
     readMore: 'Voir Tous les Avis',
     purchasedLabel: 'Achat',
@@ -386,6 +386,6 @@ export const fr: Dictionary = {
       cancel: 'Suspendre ou annuler à tout moment',
     },
     rights: 'Tous droits réservés.',
-    tagline: 'Apothicaire Éditorial & Nutrition Sportive Bio-Luxe',
+    tagline: 'Apothicaire Éditorial & Nutrition Sportive True Formula',
   },
 };

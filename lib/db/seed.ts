@@ -9,7 +9,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOi
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function seedDatabase() {
-  console.log('[Seed] Starting ProteinShop Database Seeding...');
+  console.log('[Seed] Starting True Formula Database Seeding...');
 
   // Always seed memory mockDb
   mockDb.seedDefaults();

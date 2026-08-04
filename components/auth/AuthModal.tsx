@@ -49,7 +49,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   const handleDemoLogin = async (targetRole: 'customer' | 'admin') => {
     setIsLoading(true);
-    const demoEmail = targetRole === 'admin' ? 'admin@bioluxe.io' : 'customer@bioluxe.io';
+    const demoEmail = targetRole === 'admin' ? 'admin@trueformula.io' : 'customer@trueformula.io';
     const demoPassword = targetRole === 'admin' ? 'Admin123!' : 'Customer123!';
     const demoName = targetRole === 'admin' ? 'Store Admin' : 'Jane Doe';
 

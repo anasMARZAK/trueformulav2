@@ -126,7 +126,7 @@ export default function HomePage() {
           isLoading={isLoading}
         />
 
-        {/* Why ProteinShop — Value Propositions */}
+        {/* Why True Formula — Value Propositions */}
         <ValueProps />
 
         {/* How the subscription actually works */}
@@ -159,7 +159,7 @@ export default function HomePage() {
               </p>
               <div className="flex items-center gap-2 text-xs text-[#C6DFD1]">
                 <ShieldCheck className="w-4 h-4 text-[#2E5A44] shrink-0" />
-                <span>{t.product.bioLuxePurity}</span>
+                <span>{t.product.trueformulaPurity}</span>
               </div>
             </div>
 
@@ -221,7 +221,7 @@ export default function HomePage() {
               © {new Date().getFullYear()} TRUE FORMULA Inc. — {t.footer.tagline}. {t.footer.rights}
             </p>
             <div className="flex items-center gap-1.5">
-              <span>Crafted with precision</span>
+              <span>By Ayano</span>
               <Heart className="w-3 h-3 text-[#2E5A44] fill-[#2E5A44]" />
             </div>
           </div>

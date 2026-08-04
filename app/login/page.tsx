@@ -96,7 +96,7 @@ export default function LoginPage() {
         });
       }
       // Read the actual role that was set in AuthContext by login/register
-      const savedSession = localStorage.getItem('proteinshop_auth_session');
+      const savedSession = localStorage.getItem('True Formula_auth_session');
       if (savedSession) {
         try {
           const parsed = JSON.parse(savedSession);
@@ -119,7 +119,7 @@ export default function LoginPage() {
 
   const handleDemoSignIn = async (demoRole: 'customer' | 'admin') => {
     setIsLoading(true);
-    const demoEmail = demoRole === 'admin' ? 'admin@bioluxe.io' : 'customer@bioluxe.io';
+    const demoEmail = demoRole === 'admin' ? 'admin@trueformula.io' : 'customer@trueformula.io';
     const demoPassword = demoRole === 'admin' ? 'Admin123!' : 'Customer123!';
     const demoName = demoRole === 'admin' ? 'Store Admin' : 'Jane Doe';
     setEmail(demoEmail);
@@ -190,7 +190,7 @@ export default function LoginPage() {
                 {[
                   { icon: Zap, label: language === 'fr' ? '20% de remise automatique sur abonnements' : '20% automatic discount on all subscriptions' },
                   { icon: ShieldCheck, label: language === 'fr' ? 'Suivi de commande & historique en 1 clic' : 'Real-time order tracking & portal access' },
-                  { icon: Award, label: language === 'fr' ? 'Accès prioritaire aux nouveautés bio-luxe' : 'Priority access to native formulation drops' },
+                  { icon: Award, label: language === 'fr' ? 'Accès prioritaire aux nouveautés True Formula' : 'Priority access to native formulation drops' },
                 ].map((perk, i) => (
                   <div key={i} className="flex items-center space-x-3 text-xs text-[#EAF2ED]">
                     <perk.icon className="w-4 h-4 text-[#C6DFD1] shrink-0" />

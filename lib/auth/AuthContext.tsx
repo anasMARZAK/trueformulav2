@@ -24,7 +24,7 @@ interface AuthContextType {
   isHydrated: boolean;
 }
 
-const AUTH_STORAGE_KEY = 'proteinshop_auth_session';
+const AUTH_STORAGE_KEY = 'True Formula_auth_session';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -157,7 +157,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     saveUserSession(null);
     useCartStore.getState().clearCart();
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('bioluxe_cart');
+      localStorage.removeItem('trueformula_cart');
       sessionStorage.clear();
     }
   };

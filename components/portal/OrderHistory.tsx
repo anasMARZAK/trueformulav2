@@ -166,7 +166,7 @@ export function OrderHistory() {
             <div className="flex items-center justify-between border-b border-[#EAF2ED] pb-4">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-[#2E5A44]">
-                  Bio-Luxe Logistics Express
+                  True Formula Logistics Express
                 </span>
                 <h3 className="font-serif text-lg font-bold text-[#111827]">
                   {isEn ? 'Shipment Tracking' : 'Suivi de Colis'} #{trackingOrder.id}
@@ -180,7 +180,7 @@ export function OrderHistory() {
             <div className="bg-white p-4 rounded-2xl border border-[#EAF2ED] space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-gray-500">{isEn ? 'Carrier' : 'Transporteur'}:</span>
-                <span className="font-bold text-[#2E5A44]">Bio-Luxe Apothecary Express</span>
+                <span className="font-bold text-[#2E5A44]">True Formula Apothecary Express</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">{isEn ? 'Tracking Number' : 'Numéro de suivi'}:</span>

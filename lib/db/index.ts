@@ -38,7 +38,7 @@ class MockDatabaseStore {
       nextBillingDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       shippingAddress: {
         fullName: 'Alex Vance',
-        email: 'alex.vance@bioluxe.io',
+        email: 'alex.vance@trueformula.io',
         address: '450 Sherbrooke St W',
         city: 'Montreal',
         postalCode: 'H3A 1B9',

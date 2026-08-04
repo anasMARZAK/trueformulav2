@@ -41,7 +41,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   // Shipping Form State
   const [shippingData, setShippingData] = useState({
     fullName: user?.fullName || 'Alex Vance',
-    email: user?.email || 'alex.vance@bioluxe.io',
+    email: user?.email || 'alex.vance@trueformula.io',
     address: '450 Sherbrooke St W',
     city: 'Montreal',
     postalCode: 'H3A 1B9',
@@ -312,7 +312,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                   onClick={() =>
                     setShippingData({
                       fullName: 'Alex Vance',
-                      email: 'alex.vance@bioluxe.io',
+                      email: 'alex.vance@trueformula.io',
                       address: '450 Sherbrooke St W',
                       city: 'Montreal',
                       postalCode: 'H3A 1B9',

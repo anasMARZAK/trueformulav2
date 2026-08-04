@@ -143,7 +143,7 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
         case 'wellness':
           return 'Peptides de collagène marin hydrolysé (poisson), acide hyaluronique, vitamine C (acide L-ascorbique), arôme naturel.';
         default:
-          return 'Formulation bio-luxe exclusive avec ingrédients 100% naturels vérifiés en laboratoire.';
+          return 'Formulation True Formula exclusive avec ingrédients 100% naturels vérifiés en laboratoire.';
       }
     } else {
       switch (category) {
@@ -156,7 +156,7 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
         case 'wellness':
           return 'Hydrolyzed marine collagen peptides (fish), hyaluronic acid, vitamin C (L-ascorbic acid), natural flavoring.';
         default:
-          return 'Exclusive bio-luxe formulation with 100% lab-verified clean ingredients.';
+          return 'Exclusive True Formula formulation with 100% lab-verified clean ingredients.';
       }
     }
   };
@@ -209,7 +209,7 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
             <div className="w-full space-y-2 pt-4 border-t border-[#EAF2ED] text-xs text-gray-600">
               <div className="flex items-center space-x-2">
                 <ShieldCheck className="w-4 h-4 text-[#2E5A44]" />
-                <span className="font-semibold text-[#111827]">{t.product.bioLuxePurity}</span>
+                <span className="font-semibold text-[#111827]">{t.product.trueformulaPurity}</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Truck className="w-4 h-4 text-[#2E5A44]" />

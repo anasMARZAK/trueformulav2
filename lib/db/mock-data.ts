@@ -5,8 +5,8 @@ export const MOCK_PRODUCTS: Product[] = [
     id: 'whey-isolate',
     nameEn: 'Pure Isolate Whey Protein',
     nameFr: 'Protéine de Lactosérum Isolat Pure',
-    descriptionEn: 'Ultra-filtered native whey isolate delivering 26g of pure protein per serving. Bio-luxe formulation for optimal muscle recovery.',
-    descriptionFr: 'Isolat de lactosérum natif ultra-filtré apportant 26g de protéines pures par portion. Formulation bio-luxe pour une récupération musculaire optimale.',
+    descriptionEn: 'Ultra-filtered native whey isolate delivering 26g of pure protein per serving. True Formula formulation for optimal muscle recovery.',
+    descriptionFr: 'Isolat de lactosérum natif ultra-filtré apportant 26g de protéines pures par portion. Formulation True Formula pour une récupération musculaire optimale.',
     price: '49.99',
     priceCents: 4999,
     imageUrl: '/images/true-formula-whey.jpg',
@@ -125,7 +125,7 @@ export const MOCK_PRODUCTS: Product[] = [
 export const MOCK_PROFILES: Profile[] = [
   {
     id: '00000000-0000-4000-a000-000000000002',
-    email: 'admin@proteinshop.com',
+    email: 'admin@True Formula.com',
     fullName: 'Store Admin',
     role: 'admin',
     createdAt: new Date('2026-01-01T00:00:00Z'),

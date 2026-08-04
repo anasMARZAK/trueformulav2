@@ -110,8 +110,8 @@ export async function sendOrderConfirmationEmail(params: {
   const isFr = params.language === 'fr';
 
   const subject = isFr
-    ? `Confirmation de commande #${params.orderId} — ProteinShop`
-    : `Order Confirmation #${params.orderId} — ProteinShop`;
+    ? `Confirmation de commande #${params.orderId} — True Formula`
+    : `Order Confirmation #${params.orderId} — True Formula`;
 
   const itemsHtml = params.items
     .map((item) => {
@@ -152,7 +152,7 @@ export async function sendOrderConfirmationEmail(params: {
       <body>
         <div class="container">
           <div class="header">
-            <div class="subtitle">ProteinShop • Editorial Apothecary</div>
+            <div class="subtitle">True Formula • Editorial Apothecary</div>
             <div class="title">${isFr ? 'Merci pour votre commande !' : 'Thank You For Your Order!'}</div>
             <p style="font-size: 14px; color: #4B5563; margin-top: 6px;">
               ${isFr ? 'Numéro de commande :' : 'Order Reference:'} <strong>#${params.orderId}</strong>
@@ -189,7 +189,7 @@ export async function sendOrderConfirmationEmail(params: {
             ${isFr
               ? 'Si vous avez des questions concernant votre commande, contactez notre équipe support.'
               : 'If you have any questions regarding your order, contact our apothecary support team.'}<br/>
-            © 2026 ProteinShop Bio-Luxe. All rights reserved.
+            © 2026 True Formula True Formula. All rights reserved.
           </div>
         </div>
       </body>
@@ -283,7 +283,7 @@ export async function sendSubscriptionRenewalEmail(params: {
             ${isFr
               ? 'Vous pouvez gérer ou suspendre votre abonnement à tout moment sur votre portail client.'
               : 'You can manage or pause your active subscription anytime in your member portal.'}<br/>
-            © 2026 ProteinShop Bio-Luxe.
+            © 2026 True Formula True Formula.
           </div>
         </div>
       </body>
@@ -299,19 +299,19 @@ export async function sendSubscriptionRenewalEmail(params: {
 export async function sendTestEmail(to: string = 'customer@example.com', language: 'en' | 'fr' = 'en'): Promise<{ success: boolean; id?: string; error?: string }> {
   const isFr = language === 'fr';
   const subject = isFr
-    ? '[TEST] Email de vérification — ProteinShop Developer Toolbar'
-    : '[TEST] Verification Email — ProteinShop Developer Toolbar';
+    ? '[TEST] Email de vérification — True Formula Developer Toolbar'
+    : '[TEST] Verification Email — True Formula Developer Toolbar';
 
   const html = `
     <!DOCTYPE html>
     <html>
       <body style="font-family: sans-serif; padding: 20px; background: #FDFBF7;">
         <div style="max-width: 500px; margin: 0 auto; background: white; border: 1px solid #2E5A44; border-radius: 12px; padding: 24px;">
-          <h2 style="color: #2E5A44; font-size: 18px; margin-top: 0;">🧪 ProteinShop DevToolbar Test Email</h2>
+          <h2 style="color: #2E5A44; font-size: 18px; margin-top: 0;">🧪 True Formula DevToolbar Test Email</h2>
           <p style="font-size: 14px; color: #374151;">
             ${isFr
-              ? 'Ceci est un e-mail de test généré par la barre d’outils développeur ProteinShop.'
-              : 'This is a test email triggered from the ProteinShop Developer Toolbar.'}
+              ? 'Ceci est un e-mail de test généré par la barre d’outils développeur True Formula.'
+              : 'This is a test email triggered from the True Formula Developer Toolbar.'}
           </p>
           <div style="background: #EAF2ED; padding: 12px; border-radius: 8px; font-size: 12px; color: #2E5A44; margin-top: 16px;">
             <strong>Status:</strong> ${process.env.RESEND_API_KEY ? 'Live Resend API Mode' : 'Mock Fallback Logger Mode'}<br/>

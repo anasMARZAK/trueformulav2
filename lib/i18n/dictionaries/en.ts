@@ -2,7 +2,7 @@ export const en = {
   header: {
     logoTitle: 'TRUE FORMULA',
     logoTagline: 'PHARMACEUTICAL-GRADE NUTRITION',
-    searchPlaceholder: 'Search bio-luxe supplements, proteins, creatine...',
+    searchPlaceholder: 'Search True Formula supplements, proteins, creatine...',
     categories: {
       all: 'All Collections',
       whey: 'Whey Protein',
@@ -19,7 +19,7 @@ export const en = {
     languageToggle: 'Language',
   },
   hero: {
-    badge: 'Bio-Luxe Editorial Apothecary',
+    badge: 'True Formula Editorial Apothecary',
     title: 'Your Edge. Engineered.',
     subtext: 'Clean-label whey isolates and pharmaceutical-grade creatines. Zero fillers. 20% off when you subscribe.',
     exploreCta: 'Shop the Collection',
@@ -64,7 +64,7 @@ export const en = {
       nameAsc: 'Alphabetical: A-Z',
     },
     emptyTitle: 'No formulations found',
-    emptyText: 'Try adjusting your search query or category filter to discover available bio-luxe products.',
+    emptyText: 'Try adjusting your search query or category filter to discover available True Formula products.',
     resetFilters: 'Reset All Filters',
   },
   product: {
@@ -84,7 +84,7 @@ export const en = {
     ingredientsLabel: 'Active Ingredients',
     nutritionLabel: 'Nutrition Facts (per serving)',
     directionsLabel: 'Suggested Usage',
-    bioLuxePurity: 'Bio-Luxe Purity Guarantee',
+    trueformulaPurity: 'True Formula Purity Guarantee',
     freeShipping: 'Eligible for Free Express Shipping',
     servingSize: 'Serving Size',
     servingsPerContainer: 'Servings Per Container',
@@ -96,7 +96,7 @@ export const en = {
   cart: {
     title: 'Your Apothecary Order',
     emptyTitle: 'Your cart is currently empty',
-    emptyText: 'Explore our catalog of precision supplements to begin building your bio-luxe regimen.',
+    emptyText: 'Explore our catalog of precision supplements to begin building your True Formula regimen.',
     subtotal: 'Subtotal',
     subscriptionSavings: 'Subscriber Savings (20%)',
     shipping: 'Shipping',
@@ -128,7 +128,7 @@ export const en = {
     orderSummary: 'Order Summary',
     totalPaid: 'Total Charged',
     successTitle: 'Order Confirmed!',
-    successMessage: 'Thank you for choosing ProteinShop. Your order has been dispatched.',
+    successMessage: 'Thank you for choosing True Formula. Your order has been dispatched.',
   },
   auth: {
     loginTitle: 'Sign In to Your Account',
@@ -156,7 +156,7 @@ export const en = {
   },
   portal: {
     title: 'Member Account Portal',
-    subtitle: 'Manage your bio-luxe recurring subscriptions and order history.',
+    subtitle: 'Manage your True Formula recurring subscriptions and order history.',
     mySubscriptions: 'Active Subscriptions',
     orderHistory: 'Order History',
     accountOverview: 'Account Overview',
@@ -193,17 +193,17 @@ export const en = {
     apothecaryMember: 'Apothecary Member',
     memberPrivilegeActive: '20% Recurring Member Privileges Active',
     loadingSubscriptions: 'Loading member subscriptions...',
-    noSubscriptionsSubtext: 'Subscribe to your favorite bio-luxe formulations during checkout to unlock recurring 20% member privileges.',
+    noSubscriptionsSubtext: 'Subscribe to your favorite True Formula formulations during checkout to unlock recurring 20% member privileges.',
     subscriberPrivilegeBadge: '20% Subscriber Privilege (-20%)',
     loadingOrders: 'Loading order history...',
-    noOrdersSubtext: 'Explore our apothecary catalog and place your first bio-luxe supplement order.',
+    noOrdersSubtext: 'Explore our apothecary catalog and place your first True Formula supplement order.',
     fallbackOrderItem: '1x Apothecary Item',
   },
   admin: {
     title: 'Admin Management Dashboard',
     subtitle: 'Platform analytics, inventory management, active subscriptions, and customer orders.',
     dashboard: 'Catalog & Order Management',
-    portalBadge: 'ProteinShop Executive Admin Portal',
+    portalBadge: 'True Formula Executive Admin Portal',
     currentSessionRole: 'Current Session Role',
     switchToAdmin: 'Switch to Admin Mode',
     viewingAsCustomerPrefix: 'You are currently viewing the admin portal as a',
@@ -308,17 +308,17 @@ export const en = {
     productDeleted: 'Product formulation deleted',
   },
   emails: {
-    orderConfirmationSubject: 'ProteinShop — Order Confirmation #',
+    orderConfirmationSubject: 'True Formula — Order Confirmation #',
     orderConfirmationBody: 'Thank you for your purchase. Your order is being disinfected, packed, and shipped from our bio-apothecary facility.',
-    subscriptionRenewedSubject: 'ProteinShop — Monthly Subscription Renewed',
+    subscriptionRenewedSubject: 'True Formula — Monthly Subscription Renewed',
     subscriptionRenewedBody: 'Your recurring monthly subscription has been automatically processed and dispatched.',
-    subscriptionCancelledSubject: 'ProteinShop — Subscription Cancellation Confirmed',
+    subscriptionCancelledSubject: 'True Formula — Subscription Cancellation Confirmed',
     subscriptionCancelledBody: 'Your subscription has been cancelled. You can reactivate anytime from your member portal.',
-    thankYou: 'Thank you for placing your trust in ProteinShop.',
+    thankYou: 'Thank you for placing your trust in True Formula.',
     viewOrder: 'View Order Details',
   },
   valueProps: {
-    badge: 'Why ProteinShop',
+    badge: 'Why True Formula',
     title: 'Built for Those Who Demand More',
     subtitle: 'Every formulation is engineered with clinical precision — no compromises, no shortcuts.',
     props: {
@@ -336,7 +336,7 @@ export const en = {
   reviews: {
     badge: 'Customer Testimonials',
     title: 'Trusted by Athletes & Wellness Enthusiasts',
-    subtitle: 'Real results from real people who made the switch to bio-luxe nutrition.',
+    subtitle: 'Real results from real people who made the switch to True Formula nutrition.',
     verifiedBadge: 'Verified Buyer',
     readMore: 'Read All Reviews',
     purchasedLabel: 'Purchased',
@@ -384,7 +384,7 @@ export const en = {
       cancel: 'Pause or cancel anytime',
     },
     rights: 'All rights reserved.',
-    tagline: 'Editorial Apothecary & Bio-Luxe Sport Nutrition',
+    tagline: 'Editorial Apothecary & True Formula Sport Nutrition',
   },
 };
 
