@@ -59,7 +59,7 @@ export function DynamicAnalyticsChart({ orders, isLoading = false }: DynamicAnal
     });
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [isLoading]);
 
   const { buckets, totalRevenue, pendingTotal, pendingCount, periodGrowth, avgRevenue, maxRevenue } =
     useMemo(() => {
