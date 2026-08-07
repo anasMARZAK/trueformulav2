@@ -35,10 +35,12 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-1/2 top-1/2 z-[61] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2',
+        'fixed left-1/2 top-1/2 z-[61] w-[calc(100%-2rem)] max-w-lg',
+        // Centring translate is baked into the keyframes — an animated
+        // `transform` would otherwise replace these utilities mid-flight.
+        '-translate-x-1/2 -translate-y-1/2 animate-dialog-in',
         'bg-[#FDFBF7] border border-[#C6DFD1] rounded-3xl shadow-luxe-lg',
         'max-h-[90vh] flex flex-col overflow-hidden',
-        'data-[state=open]:animate-pop-in',
         className
       )}
       {...props}

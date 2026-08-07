@@ -196,6 +196,27 @@ textarea:focus-visible,
   animation: luxePopIn 180ms var(--ease-luxe) forwards;
 }
 
+/* Centred modal entrance.
+   A dialog positioned with `left:50%; top:50%` relies on a -50%/-50% transform
+   to actually sit in the middle. An entrance animation that sets `transform`
+   replaces that translate and drops the box half a width to the right, so the
+   offset has to be baked into every keyframe rather than left to a utility
+   class. */
+@keyframes luxeDialogIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.animate-dialog-in {
+  animation: luxeDialogIn 180ms var(--ease-luxe) forwards;
+}
+
 /* Hide scrollbar on horizontal filter rails while keeping them scrollable */
 .no-scrollbar {
   -ms-overflow-style: none;

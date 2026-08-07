@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Header } from '@/components/storefront/Header';
 import { useAuth, readPersistedSession } from '@/lib/auth/AuthContext';
 import { useLanguage } from '@/lib/i18n/useLanguage';
@@ -25,7 +24,6 @@ export default function LoginPage() {
   const { t, language } = useLanguage();
   const { login, register, resetPassword } = useAuth();
   const openCart = useCartStore((state) => state.openCart);
-  const router = useRouter();
 
   const [mode, setMode] = useState<'login' | 'register' | 'forgot_password'>('login');
   const [email, setEmail] = useState('');
@@ -71,6 +69,22 @@ export default function LoginPage() {
     // Admins go straight to the dashboard; everyone else lands in the catalog,
     // which is what a shopper wants to see right after signing in.
     return isAdmin ? '/admin' : '/products';
+  };
+
+  /**
+   * Leaves the login page with a full document navigation rather than a
+   * client-side push.
+   *
+   * Supabase writes the session cookie from the browser, and the middleware that
+   * guards /account and /admin only sees it on the next request to the server. A
+   * `router.push` is handled entirely client-side, so the middleware could still
+   * be reading the pre-login cookie jar and bounce the user straight back to
+   * /login?redirect=… — which is exactly the loop that showed up in production.
+   * The old code papered over this with a fixed 500 ms sleep, which is a race,
+   * not a fix: it fails whenever the cookie round-trip is slower than that.
+   */
+  const navigateAfterAuth = (destination: string) => {
+    window.location.assign(destination);
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -125,11 +139,7 @@ export default function LoginPage() {
       if (readPersistedSession()?.role === 'admin') {
         userRole = 'admin';
       }
-      // Use router.push for proper Next.js client-side navigation
-      // This ensures middleware runs correctly with the session cookies
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const destination = getDestination(userRole === 'admin');
-      router.push(destination);
+      navigateAfterAuth(getDestination(userRole === 'admin'));
     } catch (err: any) {
       reportAuthError(err);
     } finally {
@@ -160,9 +170,7 @@ export default function LoginPage() {
       toast.success(language === 'fr' ? 'Connexion réussie' : 'Demo Access Granted', {
         description: demoRole === 'admin' ? 'Signed in as Store Administrator' : 'Signed in as Customer',
       });
-      // Use router.push for proper Next.js navigation
-      const destination = getDestination(demoRole === 'admin');
-      router.push(destination);
+      navigateAfterAuth(getDestination(demoRole === 'admin'));
     } catch (err: any) {
       reportAuthError(err);
     } finally {

@@ -16,17 +16,29 @@ export function useSubscriptionsQuery(userId?: string) {
   });
 }
 
+export type SubscriptionStatus = 'active' | 'paused' | 'cancelled';
+
+/**
+ * Pause / resume / cancel a subscription.
+ *
+ * This used to accept verbs ('pause' | 'resume' | 'cancel') and map them to
+ * statuses, but callers were already passing the target status itself. Only
+ * 'active' happened to be translated; 'paused' and 'cancelled' fell through the
+ * lookup as `undefined`, so the request body serialised to `{}` and the API
+ * rejected it with "Nothing to update. Provide status or intervalDays."
+ * Taking the status directly removes the mismatch entirely.
+ */
 export function useSubscriptionActionMutation() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ subscriptionId, action }: { subscriptionId: string; action: 'pause' | 'resume' | 'cancel' }) => {
-      const statusMap = {
-        pause: 'paused',
-        resume: 'active',
-        cancel: 'cancelled',
-      } as const;
-      const status = statusMap[action];
+    mutationFn: async ({
+      subscriptionId,
+      status,
+    }: {
+      subscriptionId: string;
+      status: SubscriptionStatus;
+    }) => {
       const res = await axiosClient.patch(`/api/subscriptions/${subscriptionId}`, { status });
       return res.data;
     },

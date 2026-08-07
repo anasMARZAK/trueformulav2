@@ -3,14 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { type Subscription } from '@/lib/db/schema';
-import { Search, RefreshCw, Inbox } from 'lucide-react';
+import { Search, RefreshCw, Inbox, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConfirm } from '@/components/ui/confirm-dialog';
 
 interface EnrichedSub extends Subscription {
   productNameEn?: string;
   productNameFr?: string;
-  userEmail?: string;
+  /** Resolved from `profiles` by the API, not the raw user_id. */
+  userEmail?: string | null;
+  userName?: string | null;
+  isRegistered?: boolean;
 }
 
 type StatusFilter = 'all' | 'active' | 'paused' | 'cancelled';
@@ -89,9 +92,13 @@ export function AdminSubsOverview() {
     const matchesStatus = statusFilter === 'all' || sub.status === statusFilter;
     const q = searchQuery.trim().toLowerCase();
     if (!q) return matchesStatus;
-    const email = (sub.userEmail || (sub.shippingAddress as any)?.email || sub.userId || '').toLowerCase();
+    const email = (sub.userEmail || (sub.shippingAddress as any)?.email || '').toLowerCase();
+    const name = (sub.userName || '').toLowerCase();
     const prodName = (sub.productNameEn || sub.productId || '').toLowerCase();
-    return matchesStatus && (email.includes(q) || prodName.includes(q) || sub.id.toLowerCase().includes(q));
+    return (
+      matchesStatus &&
+      (email.includes(q) || name.includes(q) || prodName.includes(q) || sub.id.toLowerCase().includes(q))
+    );
   });
 
   const isEn = language === 'en';
@@ -176,8 +183,10 @@ export function AdminSubsOverview() {
               </thead>
               <tbody className="divide-y divide-[#EAF2ED] text-xs font-sans">
                 {filteredSubs.map((sub) => {
-                  const customerEmail =
-                    (sub.shippingAddress as any)?.email || sub.userEmail || sub.userId || '—';
+                  // The API resolves this against `profiles`. The raw user_id is
+                  // never shown — it was the visible value here before.
+                  const customerEmail = sub.userEmail || (sub.shippingAddress as any)?.email || null;
+                  const customerName = sub.userName ?? null;
                   const prodName = isEn
                     ? sub.productNameEn || sub.productId
                     : sub.productNameFr || sub.productId;
@@ -193,8 +202,25 @@ export function AdminSubsOverview() {
                         {sub.id.slice(0, 8)}
                       </td>
 
-                      <td className="py-4 px-5 text-[#111827] font-medium">
-                        <span className="block truncate max-w-[180px]">{customerEmail}</span>
+                      <td className="py-4 px-5">
+                        {customerName && (
+                          <div className="font-semibold text-[#111827] truncate max-w-[200px]">
+                            {customerName}
+                          </div>
+                        )}
+                        {customerEmail ? (
+                          <a
+                            href={`mailto:${customerEmail}`}
+                            className="text-[10px] text-[#6B7280] font-mono truncate max-w-[200px] inline-flex items-center gap-1 hover:text-[#2E5A44] hover:underline"
+                          >
+                            <Mail className="w-2.5 h-2.5 shrink-0" />
+                            {customerEmail}
+                          </a>
+                        ) : (
+                          <span className="text-[10px] text-[#C4C0B6] italic">
+                            {isEn ? 'no account linked' : 'aucun compte lié'}
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-4 px-5 font-semibold text-[#111827]">

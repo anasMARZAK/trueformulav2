@@ -82,15 +82,24 @@ export async function PATCH(
       sbPayload.status = status;
       if (status === 'cancelled') {
         sbPayload.cancelled_at = nowIso;
+      } else {
+        // Resuming clears the cancellation stamp so the row is not left looking
+        // half-cancelled.
+        sbPayload.cancelled_at = null;
       }
     }
 
     if (intervalDays) {
       sbPayload.interval_days = intervalDays;
-      // Recompute next_billing_date if requested
-      const currentNext = existingSub.next_billing_date ? new Date(existingSub.next_billing_date) : new Date();
-      const newNext = new Date(currentNext.getTime() + intervalDays * 24 * 60 * 60 * 1000);
+
+      // The next charge is scheduled one full cycle from now. This previously
+      // added the interval to the *existing* next_billing_date, so every time a
+      // member adjusted their cadence the date was pushed another cycle into the
+      // future — picking "every 30 days" three times moved billing 90 days out.
+      const newNext = new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000);
       sbPayload.next_billing_date = newNext.toISOString();
+      // Legacy column kept in step; the admin table historically read this one.
+      sbPayload.next_delivery_date = newNext.toISOString();
     }
 
     // 3. Update in Supabase

@@ -36,10 +36,9 @@ export function SubscriptionsManager() {
 
   const handleUpdateStatus = async (id: string, newStatus: 'active' | 'paused' | 'cancelled') => {
     setActionLoadingId(id);
-    const mappedAction = newStatus === 'active' ? 'resume' : newStatus;
 
     actionMutation.mutate(
-      { subscriptionId: id, action: mappedAction as any },
+      { subscriptionId: id, status: newStatus },
       {
         onSuccess: (data) => {
           if (data.success) {
@@ -184,9 +183,12 @@ export function SubscriptionsManager() {
                       <RefreshCw className="w-3 h-3 text-[#2E5A44]" />
                       <span className="text-[11px] font-medium text-gray-700">Cycle:</span>
                       <select
-                        defaultValue={sub.intervalDays ? String(sub.intervalDays) : '30'}
+                        // Controlled, so the saved cadence is still shown after a
+                        // refetch — `defaultValue` left the select stuck on
+                        // whatever it rendered with first.
+                        value={sub.intervalDays ? String(sub.intervalDays) : '30'}
                         onChange={(e) => handleUpdateInterval(sub.id, parseInt(e.target.value, 10))}
-                        disabled={isActioning}
+                        disabled={isActioning || sub.status === 'cancelled'}
                         className="bg-transparent text-[11px] font-bold text-[#2E5A44] focus:outline-none cursor-pointer"
                       >
                         <option value="30">{language === 'fr' ? 'Tous les 30 jours' : 'Every 30 Days'}</option>

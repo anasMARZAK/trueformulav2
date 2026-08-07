@@ -61,25 +61,29 @@ type ConfirmFn = (options: ConfirmOptions) => Promise<boolean>;
 
 const ConfirmContext = React.createContext<ConfirmFn | null>(null);
 
-interface PendingConfirm extends ConfirmOptions {
-  resolve: (value: boolean) => void;
-}
-
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
-  const [pending, setPending] = React.useState<PendingConfirm | null>(null);
+  const [pending, setPending] = React.useState<ConfirmOptions | null>(null);
+
+  // The resolver lives in a ref rather than in state: resolving inside a state
+  // updater would fire twice under React StrictMode, and the updater must stay
+  // side-effect free.
+  const resolverRef = React.useRef<((value: boolean) => void) | null>(null);
 
   const confirm = React.useCallback<ConfirmFn>((options) => {
     return new Promise<boolean>((resolve) => {
-      setPending({ ...options, resolve });
+      resolverRef.current = resolve;
+      setPending(options);
     });
   }, []);
 
-  const settle = (value: boolean) => {
-    setPending((current) => {
-      current?.resolve(value);
-      return null;
-    });
-  };
+  // Settling is idempotent — Radix fires `onOpenChange(false)` right after an
+  // action button is clicked, and that must not overwrite the real answer.
+  const settle = React.useCallback((value: boolean) => {
+    const resolve = resolverRef.current;
+    resolverRef.current = null;
+    setPending(null);
+    resolve?.(value);
+  }, []);
 
   const intent = pending?.intent ?? 'question';
   const { Icon, iconWrap, confirmVariant } = INTENT_STYLES[intent];
@@ -99,9 +103,12 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
           <AlertDialogPrimitive.Overlay className="fixed inset-0 z-[70] bg-[#111827]/55 backdrop-blur-sm data-[state=open]:animate-fade-in" />
           <AlertDialogPrimitive.Content
             className={cn(
-              'fixed left-1/2 top-1/2 z-[71] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2',
-              'rounded-3xl border border-[#C6DFD1] bg-[#FDFBF7] p-6 shadow-luxe-lg',
-              'data-[state=open]:animate-pop-in'
+              'fixed left-1/2 top-1/2 z-[71] w-[calc(100%-2rem)] max-w-md',
+              // The centring translate lives in the keyframes (see
+              // .animate-dialog-in) because an animated `transform` replaces the
+              // utility classes and the box lands off-centre.
+              '-translate-x-1/2 -translate-y-1/2 animate-dialog-in',
+              'rounded-3xl border border-[#C6DFD1] bg-[#FDFBF7] p-6 shadow-luxe-lg'
             )}
           >
             <div className="flex gap-4">
@@ -126,16 +133,25 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
+            {/* Both buttons settle the promise explicitly. Relying on Radix's
+                close behaviour alone made every confirmation resolve `false`,
+                because closing fires `onOpenChange(false)` regardless of which
+                button was pressed — so accepting an action did nothing. */}
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               {!pending?.acknowledgeOnly && (
                 <AlertDialogPrimitive.Cancel asChild>
-                  <Button variant="outline" size="sm" className="sm:min-w-24">
+                  <Button variant="outline" size="sm" className="sm:min-w-24" onClick={() => settle(false)}>
                     {pending?.cancelLabel || 'Cancel'}
                   </Button>
                 </AlertDialogPrimitive.Cancel>
               )}
               <AlertDialogPrimitive.Action asChild>
-                <Button variant={confirmVariant} size="sm" className="sm:min-w-28">
+                <Button
+                  variant={confirmVariant}
+                  size="sm"
+                  className="sm:min-w-28"
+                  onClick={() => settle(true)}
+                >
                   {pending?.confirmLabel || 'Confirm'}
                 </Button>
               </AlertDialogPrimitive.Action>
