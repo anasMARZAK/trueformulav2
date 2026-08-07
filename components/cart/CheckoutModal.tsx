@@ -21,6 +21,7 @@ import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useScrollLock } from '@/lib/ui/scroll-lock';
 import { axiosClient } from '@/lib/api/axiosClient';
 
 interface CheckoutModalProps {
@@ -77,6 +78,9 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
       setIdempotencyKey('');
     }
   }, [isOpen]);
+
+  // Pause page scrolling while the overlay owns the viewport.
+  useScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -210,7 +214,10 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/65 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+    <div
+      data-lenis-prevent
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/65 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-fade-in"
+    >
       <div
         className="relative bg-[#FDFBF7] w-full max-w-3xl rounded-2xl shadow-2xl border border-[#EAF2ED] overflow-hidden my-8"
         onClick={(e) => e.stopPropagation()}
@@ -477,7 +484,7 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
                     <span>{t.checkout.orderSummary}</span>
                   </h3>
 
-                  <div className="bg-white rounded-xl border border-[#EAF2ED] p-4 max-h-60 overflow-y-auto space-y-3">
+                  <div data-lenis-prevent className="bg-white rounded-xl border border-[#EAF2ED] p-4 max-h-60 overflow-y-auto space-y-3">
                     {items.map((item) => {
                       const itemName = language === 'fr' ? item.nameFr : item.nameEn;
                       const isSub = item.purchaseType === 'subscription';

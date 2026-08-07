@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { ShoppingBag, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { useOrdersQuery } from '@/lib/hooks/useOrdersQuery';
 import { TableSkeleton } from '@/components/ui/skeletons/TableSkeleton';
+import { useScrollLock } from '@/lib/ui/scroll-lock';
 
 interface OrderItemDisplay {
   id: string;
@@ -35,6 +36,9 @@ export function OrderHistory() {
   const { data: fetchedOrders, isLoading } = useOrdersQuery(userId);
   const orders: OrderDisplay[] = fetchedOrders || [];
   const [trackingOrder, setTrackingOrder] = useState<OrderDisplay | null>(null);
+
+  // Pause page scrolling while the tracking overlay is open.
+  useScrollLock(trackingOrder !== null);
 
   if (isLoading) {
     return <TableSkeleton rows={4} />;

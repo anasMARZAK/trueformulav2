@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useScrollLock } from '@/lib/ui/scroll-lock';
 import Image from 'next/image';
 import { X, ShoppingBag, Trash2, Plus, Minus, RefreshCw, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { useCartStore } from '@/lib/store/useCartStore';
@@ -24,6 +25,9 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
     getTotalSavings,
     getItemCount,
   } = useCartStore();
+
+  // Pause page scrolling while the drawer owns the viewport.
+  useScrollLock(isCartOpen);
 
   if (!isCartOpen) return null;
 
@@ -99,7 +103,7 @@ export function CartDrawer({ onCheckout }: CartDrawerProps) {
           </div>
 
           {/* Drawer Content */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div data-lenis-prevent className="flex-1 overflow-y-auto p-6 space-y-4">
             {/* Free Shipping Progress Indicator */}
             {items.length > 0 && (
               <div className="bg-white p-3.5 rounded-xl border border-[#C6DFD1] space-y-2 shadow-2xs">

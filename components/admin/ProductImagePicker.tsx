@@ -353,7 +353,9 @@ export function ProductImagePicker({ value, onChange, error }: ProductImagePicke
             ))}
           </div>
         ) : (
-          <div className="grid max-h-56 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4">
+          <div data-lenis-prevent
+            className="grid max-h-56 grid-cols-3 gap-2 overflow-y-auto pr-1 sm:grid-cols-4"
+          >
             {assets.map((asset) => {
               const isSelected = asset.url === value;
               return (

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Lenis from 'lenis';
+import { setLenisInstance } from '@/lib/ui/scroll-lock';
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -29,6 +30,13 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
         easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
         smoothWheel: true,
       });
+      // Lenis natively skips any event whose composed path contains an element
+      // marked `data-lenis-prevent`, which is how scroll containers inside
+      // modals and drawers keep their own wheel events instead of handing them
+      // to the page. No extra configuration is needed for that to work.
+
+      // Published so overlays can pause page scrolling while they are open.
+      setLenisInstance(lenis);
 
       function raf(time: number) {
         if (lenis) {
@@ -45,6 +53,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
     return () => {
       if (animationFrameId) cancelAnimationFrame(animationFrameId);
       if (lenis) lenis.destroy();
+      setLenisInstance(null);
     };
   }, []);
 

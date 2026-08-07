@@ -76,7 +76,11 @@ function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 }
 
 function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn('flex-1 overflow-y-auto px-6 pb-2', className)} {...props} />;
+  // `data-lenis-prevent` keeps the smooth-scroll engine from stealing wheel
+  // events that belong to this container.
+  return (
+    <div data-lenis-prevent className={cn('flex-1 overflow-y-auto px-6 pb-2', className)} {...props} />
+  );
 }
 
 const DialogTitle = React.forwardRef<

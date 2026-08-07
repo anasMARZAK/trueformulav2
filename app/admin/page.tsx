@@ -191,6 +191,7 @@ export default function AdminPage() {
           Pinned with `fixed` at every breakpoint. It was previously `lg:sticky`
           inside a flex row, which let it scroll away with the page content. */}
       <aside
+        data-lenis-prevent
         className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-[#E5E2D9] flex flex-col justify-between z-50 transition-transform duration-300 overflow-y-auto ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}

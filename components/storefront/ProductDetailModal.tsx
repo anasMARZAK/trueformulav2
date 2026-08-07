@@ -6,6 +6,7 @@ import { X, Star, ShoppingBag, Check, ShieldCheck, RefreshCw, Truck, Info, Minus
 import { type Product } from '@/lib/db/schema';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useCartStore } from '@/lib/store/useCartStore';
+import { useScrollLock } from '@/lib/ui/scroll-lock';
 import { toast } from 'sonner';
 
 interface ProductDetailModalProps {
@@ -25,6 +26,10 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
   const [purchaseType, setPurchaseType] = useState<'one_time' | 'subscription'>('subscription');
   const [quantity, setQuantity] = useState<number>(1);
   const [isAdded, setIsAdded] = useState<boolean>(false);
+
+  // Pauses Lenis and locks the body while the modal is open. Called before the
+  // early return so the hook order stays stable.
+  useScrollLock(Boolean(product));
 
   if (!product) return null;
 
@@ -162,7 +167,10 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-fade-in">
+    <div
+      data-lenis-prevent
+      className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-fade-in"
+    >
       <div
         className="relative bg-[#FDFBF7] w-full max-w-4xl rounded-2xl shadow-2xl border border-[#EAF2ED] overflow-hidden my-8"
         onClick={(e) => e.stopPropagation()}
@@ -176,7 +184,7 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
           <X className="w-5 h-5" />
         </button>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 max-h-[85vh] overflow-y-auto">
+        <div data-lenis-prevent className="grid grid-cols-1 md:grid-cols-12 max-h-[85vh] overflow-y-auto">
           {/* Left Column: Image Render & Badges with Hero Gradient */}
           <div
             className="md:col-span-5 p-8 border-b md:border-b-0 md:border-r border-[#EAF2ED] flex flex-col justify-between items-center relative"

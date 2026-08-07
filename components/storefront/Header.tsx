@@ -414,7 +414,10 @@ export function Header({
                 onClick={() => setIsMobileMenuOpen(false)}
                 aria-hidden="true"
               />
-              <div className="bg-[#FDFBF7] p-5 space-y-5 border-b border-[#C6DFD1] shadow-2xl max-h-[85vh] overflow-y-auto">
+              <div
+                data-lenis-prevent
+                className="bg-[#FDFBF7] p-5 space-y-5 border-b border-[#C6DFD1] shadow-2xl max-h-[85vh] overflow-y-auto"
+              >
                 {/* Search Bar inside Drawer */}
                 <div className="relative">
                   <input

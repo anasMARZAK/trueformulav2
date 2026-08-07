@@ -7,6 +7,7 @@ import { X, Sparkles } from 'lucide-react';
 import { z } from 'zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useScrollLock } from '@/lib/ui/scroll-lock';
 import { ProductImagePicker } from './ProductImagePicker';
 
 const productSchema = z.object({
@@ -84,6 +85,9 @@ export function ProductModal({ isOpen, onClose, product, onSaveSuccess }: Produc
     }
     setErrors({});
   }, [product, isOpen]);
+
+  // Pause page scrolling while the overlay owns the viewport.
+  useScrollLock(isOpen);
 
   if (!isOpen) return null;
 
@@ -179,7 +183,8 @@ export function ProductModal({ isOpen, onClose, product, onSaveSuccess }: Produc
         </div>
 
         {/* Scrollable Form Body */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
+        <form onSubmit={handleSubmit} data-lenis-prevent
+          className="p-6 space-y-4 overflow-y-auto flex-1 text-xs">
           {/* Names */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>

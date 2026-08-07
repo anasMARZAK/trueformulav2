@@ -5,6 +5,7 @@ import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import { AlertTriangle, Trash2, PauseCircle, Info, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useScrollLock } from '@/lib/ui/scroll-lock';
 
 /**
  * Replaces the native `alert()` / `confirm()` dialogs. Native modals cannot be
@@ -84,6 +85,10 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     setPending(null);
     resolve?.(value);
   }, []);
+
+  // Radix locks the body on its own, but Lenis drives scrolling from JS and
+  // would keep moving the page underneath the dialog.
+  useScrollLock(pending !== null);
 
   const intent = pending?.intent ?? 'question';
   const { Icon, iconWrap, confirmVariant } = INTENT_STYLES[intent];
