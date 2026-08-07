@@ -7,6 +7,7 @@ import { type Product } from '@/lib/db/schema';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useCartStore } from '@/lib/store/useCartStore';
 import { useScrollLock } from '@/lib/ui/scroll-lock';
+import { useEscapeKey } from '@/lib/ui/useEscapeKey';
 import { toast } from 'sonner';
 
 interface ProductDetailModalProps {
@@ -30,6 +31,7 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
   // Pauses Lenis and locks the body while the modal is open. Called before the
   // early return so the hook order stays stable.
   useScrollLock(Boolean(product));
+  useEscapeKey(Boolean(product), onClose);
 
   if (!product) return null;
 
@@ -167,24 +169,32 @@ export function ProductDetailModal({ product, onClose }: ProductDetailModalProps
   };
 
   return (
+    // Overlay does not scroll: the modal is capped to the viewport and scrolls
+    // its own body, so the close button stays reachable on short screens.
     <div
-      data-lenis-prevent
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-fade-in"
+      onClick={onClose}
+      className="fixed inset-0 z-50 overflow-hidden bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-6 animate-fade-in"
     >
       <div
-        className="relative bg-[#FDFBF7] w-full max-w-4xl rounded-2xl shadow-2xl border border-[#EAF2ED] overflow-hidden my-8"
+        role="dialog"
+        aria-modal="true"
+        aria-label={productName}
+        className="relative bg-[#FDFBF7] w-full max-w-4xl rounded-t-2xl sm:rounded-2xl shadow-2xl border border-[#EAF2ED] overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[calc(100dvh-3rem)]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
+        {/* Close Button — 44px touch target, pinned above the scroll area */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 bg-white/80 hover:bg-[#2E5A44] hover:text-white text-gray-700 rounded-full transition-colors shadow-xs"
+          className="absolute top-3 right-3 z-20 w-11 h-11 flex items-center justify-center bg-white/90 backdrop-blur-sm hover:bg-[#2E5A44] hover:text-white text-gray-700 rounded-full transition-colors shadow-sm focus-luxe"
           aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div data-lenis-prevent className="grid grid-cols-1 md:grid-cols-12 max-h-[85vh] overflow-y-auto">
+        <div
+          data-lenis-prevent
+          className="grid grid-cols-1 md:grid-cols-12 flex-1 overflow-y-auto overscroll-contain"
+        >
           {/* Left Column: Image Render & Badges with Hero Gradient */}
           <div
             className="md:col-span-5 p-8 border-b md:border-b-0 md:border-r border-[#EAF2ED] flex flex-col justify-between items-center relative"

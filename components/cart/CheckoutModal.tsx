@@ -22,6 +22,7 @@ import { useAuth } from '@/lib/auth/AuthContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useScrollLock } from '@/lib/ui/scroll-lock';
+import { useEscapeKey } from '@/lib/ui/useEscapeKey';
 import { axiosClient } from '@/lib/api/axiosClient';
 
 interface CheckoutModalProps {
@@ -79,8 +80,16 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
     }
   }, [isOpen]);
 
+  // Defined above the hooks below that reference it — a `const` arrow function
+  // used earlier in the body would hit the temporal dead zone.
+  const handleClose = React.useCallback(() => {
+    setStep('shipping');
+    onClose();
+  }, [onClose]);
+
   // Pause page scrolling while the overlay owns the viewport.
   useScrollLock(isOpen);
+  useEscapeKey(isOpen, handleClose);
 
   if (!isOpen) return null;
 
@@ -208,69 +217,105 @@ export function CheckoutModal({ isOpen, onClose }: CheckoutModalProps) {
     }
   };
 
-  const handleClose = () => {
-    setStep('shipping');
-    onClose();
-  };
+  /** Ordered steps, used by the responsive progress indicator. */
+  const STEPS: Array<{ key: typeof step; label: string }> = [
+    { key: 'shipping', label: t.checkout.shippingInfo },
+    { key: 'payment', label: t.checkout.paymentInfo },
+    { key: 'confirmation', label: 'Confirmation' },
+  ];
+  const currentStepIndex = Math.max(0, STEPS.findIndex((s) => s.key === step));
 
   return (
+    // The overlay itself no longer scrolls. It used to, which meant a tall modal
+    // pushed its own header — and the close button with it — above the top of a
+    // small screen, leaving no way out of the checkout. The modal is now capped
+    // to the viewport and scrolls internally instead.
     <div
-      data-lenis-prevent
-      className="fixed inset-0 z-50 overflow-y-auto bg-black/65 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6 animate-fade-in"
+      onClick={handleClose}
+      className="fixed inset-0 z-50 overflow-hidden bg-black/65 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-6 animate-fade-in"
     >
       <div
-        className="relative bg-[#FDFBF7] w-full max-w-3xl rounded-2xl shadow-2xl border border-[#EAF2ED] overflow-hidden my-8"
+        role="dialog"
+        aria-modal="true"
+        aria-label={t.checkout.title}
+        className="relative bg-[#FDFBF7] w-full max-w-3xl rounded-t-2xl sm:rounded-2xl shadow-2xl border border-[#EAF2ED] overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[calc(100dvh-3rem)]"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="bg-white p-6 border-b border-[#EAF2ED] flex items-center justify-between">
-          <div>
+        {/* Header — pinned, never scrolls out of reach */}
+        <div className="bg-white px-4 sm:px-6 py-4 sm:py-5 border-b border-[#EAF2ED] flex items-center justify-between gap-3 shrink-0">
+          <div className="min-w-0">
             <span className="text-[10px] uppercase font-bold tracking-widest text-[#2E5A44]">
               {t.header.logoTitle} • Editorial Apothecary
             </span>
-            <h2 className="font-serif text-xl font-bold text-[#111827]">
+            <h2 className="font-serif text-lg sm:text-xl font-bold text-[#111827] truncate">
               {t.checkout.title}
             </h2>
           </div>
+          {/* 44px minimum touch target */}
           <button
             onClick={handleClose}
-            className="p-2 text-gray-400 hover:text-[#111827] hover:bg-[#EAF2ED] rounded-full transition-colors"
+            className="shrink-0 w-11 h-11 flex items-center justify-center text-gray-500 hover:text-[#111827] hover:bg-[#EAF2ED] rounded-full transition-colors focus-luxe"
             aria-label="Close checkout"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Step Progress Bar */}
-        <div className="bg-[#EAF2ED]/60 px-6 py-3 border-b border-[#EAF2ED] flex items-center justify-between text-xs font-semibold">
-          <div className={`flex items-center space-x-2 ${step === 'shipping' ? 'text-[#2E5A44]' : 'text-gray-500'}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${step === 'shipping' ? 'bg-[#2E5A44] text-white' : 'bg-gray-200 text-gray-700'}`}>
-              1
+        {/* Step Progress — the three labels plus two connectors could not fit a
+            phone, so the row overflowed off the right edge. Narrow screens get a
+            compact "Step n of 3" counter instead. */}
+        <div className="bg-[#EAF2ED]/60 px-4 sm:px-6 py-3 border-b border-[#EAF2ED] text-xs font-semibold shrink-0">
+          {/* Mobile */}
+          <div className="flex items-center gap-3 sm:hidden">
+            <span className="w-6 h-6 shrink-0 rounded-full bg-[#2E5A44] text-white flex items-center justify-center text-[10px] font-bold">
+              {currentStepIndex + 1}
             </span>
-            <span>{t.checkout.shippingInfo}</span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] uppercase tracking-wider text-gray-500">
+                {language === 'fr'
+                  ? `Étape ${currentStepIndex + 1} sur ${STEPS.length}`
+                  : `Step ${currentStepIndex + 1} of ${STEPS.length}`}
+              </div>
+              <div className="text-[#2E5A44] truncate">{STEPS[currentStepIndex].label}</div>
+            </div>
+            <div className="flex gap-1 shrink-0" aria-hidden="true">
+              {STEPS.map((s, i) => (
+                <span
+                  key={s.key}
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    i <= currentStepIndex ? 'bg-[#2E5A44]' : 'bg-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
           </div>
 
-          <div className="h-0.5 flex-1 mx-4 bg-gray-300" />
-
-          <div className={`flex items-center space-x-2 ${step === 'payment' ? 'text-[#2E5A44]' : 'text-gray-500'}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${step === 'payment' ? 'bg-[#2E5A44] text-white' : 'bg-gray-200 text-gray-700'}`}>
-              2
-            </span>
-            <span>{t.checkout.paymentInfo}</span>
-          </div>
-
-          <div className="h-0.5 flex-1 mx-4 bg-gray-300" />
-
-          <div className={`flex items-center space-x-2 ${step === 'confirmation' ? 'text-[#2E5A44]' : 'text-gray-500'}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${step === 'confirmation' ? 'bg-[#2E5A44] text-white' : 'bg-gray-200 text-gray-700'}`}>
-              3
-            </span>
-            <span>{language === 'fr' ? 'Confirmation' : 'Confirmation'}</span>
+          {/* Desktop */}
+          <div className="hidden sm:flex items-center justify-between">
+            {STEPS.map((s, i) => (
+              <React.Fragment key={s.key}>
+                {i > 0 && <div className="h-0.5 flex-1 mx-4 bg-gray-300" />}
+                <div
+                  className={`flex items-center space-x-2 ${
+                    step === s.key ? 'text-[#2E5A44]' : 'text-gray-500'
+                  }`}
+                >
+                  <span
+                    className={`w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                      step === s.key ? 'bg-[#2E5A44] text-white' : 'bg-gray-200 text-gray-700'
+                    }`}
+                  >
+                    {i + 1}
+                  </span>
+                  <span>{s.label}</span>
+                </div>
+              </React.Fragment>
+            ))}
           </div>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-6 sm:p-8">
+        {/* Modal Body — the only scrolling region */}
+        <div data-lenis-prevent className="flex-1 overflow-y-auto overscroll-contain p-5 sm:p-8">
           {/* STEP 0: MANDATORY AUTHENTICATION GATE */}
           {step === 'auth_gate' && (
             <div className="text-center py-8 space-y-6">

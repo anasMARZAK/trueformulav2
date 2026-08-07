@@ -163,8 +163,8 @@ export function ProductModal({ isOpen, onClose, product, onSaveSuccess }: Produc
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[#FDFBF7] border border-[#C6DFD1] rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 overflow-hidden animate-in fade-in duration-200">
+      <div className="bg-[#FDFBF7] border border-[#C6DFD1] rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden max-h-[92dvh] sm:max-h-[calc(100dvh-2rem)] flex flex-col">
         {/* Header */}
         <div className="bg-[#2E5A44] text-white p-6 relative shrink-0">
           <button

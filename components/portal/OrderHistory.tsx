@@ -166,8 +166,8 @@ export function OrderHistory() {
 
       {/* Shipment Tracking Interactive Modal */}
       {trackingOrder && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in" onClick={() => setTrackingOrder(null)}>
-          <div className="bg-[#FDFBF7] border border-[#C6DFD1] rounded-3xl max-w-lg w-full p-6 space-y-6 shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden animate-fade-in" onClick={() => setTrackingOrder(null)}>
+          <div data-lenis-prevent className="bg-[#FDFBF7] border border-[#C6DFD1] rounded-t-3xl sm:rounded-3xl max-w-lg w-full p-6 space-y-6 shadow-2xl relative max-h-[92dvh] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-[#EAF2ED] pb-4">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-[#2E5A44]">

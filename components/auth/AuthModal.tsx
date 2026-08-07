@@ -6,6 +6,8 @@ import { useAuth, readPersistedSession } from '@/lib/auth/AuthContext';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { describeAuthError } from '@/lib/auth/authErrors';
 import { toast } from 'sonner';
+import { useScrollLock } from '@/lib/ui/scroll-lock';
+import { useEscapeKey } from '@/lib/ui/useEscapeKey';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -25,6 +27,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Pause page scrolling while the overlay owns the viewport.
+  useScrollLock(isOpen);
+  useEscapeKey(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -93,8 +99,11 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-[#FDFBF7] border border-[#C6DFD1] rounded-3xl shadow-2xl max-w-md w-full overflow-hidden relative">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 overflow-hidden animate-in fade-in duration-200">
+      <div
+        data-lenis-prevent
+        className="bg-[#FDFBF7] border border-[#C6DFD1] rounded-t-3xl sm:rounded-3xl shadow-2xl max-w-md w-full relative max-h-[92dvh] sm:max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain"
+      >
         {/* Header */}
         <div className="bg-[#2E5A44] text-white p-6 relative">
           <button
