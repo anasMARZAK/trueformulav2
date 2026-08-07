@@ -2,8 +2,9 @@
 
 import React, { useState } from 'react';
 import { X, User, Lock, Mail, ShieldCheck, Sparkles, UserCheck } from 'lucide-react';
-import { useAuth } from '@/lib/auth/AuthContext';
+import { useAuth, readPersistedSession } from '@/lib/auth/AuthContext';
 import { useLanguage } from '@/lib/i18n/useLanguage';
+import { describeAuthError } from '@/lib/auth/authErrors';
 import { toast } from 'sonner';
 
 interface AuthModalProps {
@@ -11,8 +12,13 @@ interface AuthModalProps {
   onClose: () => void;
 }
 
+/** Where a signed-in user lands: admins in the dashboard, shoppers in the catalog. */
+function destinationForRole(isAdmin: boolean) {
+  return isAdmin ? '/admin' : '/products';
+}
+
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { login, register } = useAuth();
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -39,9 +45,17 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         toast.success(t.auth.authSuccess, { description: `Account created for ${email}` });
       }
       onClose();
-      window.location.href = email.toLowerCase().includes('admin') ? '/admin' : '/account';
-    } catch {
-      toast.error(t.auth.authError);
+      // Read the role the auth context actually resolved rather than guessing
+      // from the email string.
+      window.location.href = destinationForRole(readPersistedSession()?.role === 'admin');
+    } catch (err) {
+      // The real reason was being discarded, so every failure looked identical.
+      const friendly = describeAuthError(err, language);
+      toast.error(friendly.title, { description: friendly.description });
+      if (friendly.kind === 'already_registered') {
+        setMode('login');
+        setPassword('');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -69,9 +83,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         description: targetRole === 'admin' ? 'Signed in as Store Admin' : 'Signed in as Customer',
       });
       onClose();
-      window.location.href = targetRole === 'admin' ? '/admin' : '/account';
-    } catch {
-      toast.error(t.auth.authError);
+      window.location.href = destinationForRole(targetRole === 'admin');
+    } catch (err) {
+      const friendly = describeAuthError(err, language);
+      toast.error(friendly.title, { description: friendly.description });
     } finally {
       setIsLoading(false);
     }

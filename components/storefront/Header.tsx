@@ -19,9 +19,8 @@ import {
   Beaker,
   Award,
   Zap,
-  ChevronLeft,
-  ChevronRight,
   Globe,
+  LayoutDashboard,
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useCartStore } from '@/lib/store/useCartStore';
@@ -65,23 +64,24 @@ export function Header({
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [tickerIndex, setTickerIndex] = useState(0);
 
-  // Auto-rotate announcement bar every 3.5 seconds
+  // Elevate the sticky bar once the page has moved. This only swaps a shadow —
+  // it deliberately changes no box dimensions, so it cannot shift layout.
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTickerIndex((prev) => (prev + 1) % TICKER_ITEMS.length);
-    }, 3500);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Track scroll to hide top announcement bar on deep scroll
-  useEffect(() => {
+    let frame = 0;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 60);
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        setIsScrolled(window.scrollY > 8);
+        frame = 0;
+      });
     };
+    handleScroll();
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, []);
 
   const handleOpenCartClick = () => {
@@ -107,53 +107,55 @@ export function Header({
     setLanguage(lang);
   };
 
-  const currentTicker = TICKER_ITEMS[tickerIndex];
-  const CurrentIcon = currentTicker.Icon;
-
   return (
     <>
-      <header className="sticky top-0 z-40 bg-[#FDFBF7]/95 backdrop-blur-md border-b border-[#EAF2ED]">
-        {/* Inline CSS animation fallback to guarantee marquee rotation */}
-        <style jsx global>{`
-          @keyframes tfMarqueeScroll {
-            0% { transform: translate3d(0, 0, 0); }
-            100% { transform: translate3d(-50%, 0, 0); }
-          }
-          .animate-tf-marquee {
-            display: flex !important;
-            width: max-content !important;
-            animation: tfMarqueeScroll 50s linear infinite !important;
-            will-change: transform;
-          }
-          .animate-tf-marquee:hover {
-            animation-play-state: paused !important;
-          }
-        `}</style>
+      {/* Inline CSS animation fallback to guarantee marquee rotation */}
+      <style jsx global>{`
+        @keyframes tfMarqueeScroll {
+          0% { transform: translate3d(0, 0, 0); }
+          100% { transform: translate3d(-50%, 0, 0); }
+        }
+        .animate-tf-marquee {
+          display: flex !important;
+          width: max-content !important;
+          animation: tfMarqueeScroll 50s linear infinite !important;
+          will-change: transform;
+        }
+        .animate-tf-marquee:hover {
+          animation-play-state: paused !important;
+        }
+      `}</style>
 
-        {/* Top Banner — Continuous Infinite Rotating Marquee Ticker */}
-        <div
-          className={`bg-[#2E5A44] text-white text-[11px] font-bold tracking-wider uppercase overflow-hidden transition-all duration-300 ease-in-out border-b border-[#1E3A2B] ${
-            isScrolled ? 'max-h-0 py-0 opacity-0' : 'max-h-12 py-2 opacity-100'
-          }`}
-        >
-          <div className="w-full overflow-hidden select-none">
-            <div className="animate-tf-marquee flex items-center space-x-8">
-              {/* Rendered 4 times so it wraps seamlessly on all screen sizes */}
-              {[0, 1, 2, 3].map((copy) =>
-                TICKER_ITEMS.map((item, idx) => (
-                  <div key={`${copy}-${idx}`} className="flex items-center space-x-2 shrink-0" aria-hidden={copy > 0}>
-                    <item.Icon className="w-3.5 h-3.5 text-[#C6DFD1] shrink-0" />
-                    <span className="text-[#C6DFD1] font-semibold text-xs whitespace-nowrap">
-                      {language === 'fr' ? item.fr : item.en}
-                    </span>
-                    <span className="text-[#C6DFD1]/30 text-xs px-2">•</span>
-                  </div>
-                ))
-              )}
-            </div>
+      {/* ── Announcement ticker ───────────────────────────────────────────────
+          Sits in normal document flow ABOVE the sticky bar rather than inside
+          it. It previously collapsed its own height on scroll while nested in
+          the sticky header, which resized the sticky element mid-scroll — the
+          nav appeared to jump on its own and fought the smooth-scroll easing.
+          Scrolling now simply carries it off-screen: zero layout shift. */}
+      <div className="bg-[#2E5A44] text-white text-[11px] font-bold tracking-wider uppercase overflow-hidden border-b border-[#1E3A2B] py-2">
+        <div className="w-full overflow-hidden select-none">
+          <div className="animate-tf-marquee flex items-center space-x-8">
+            {/* Rendered 4 times so it wraps seamlessly on all screen sizes */}
+            {[0, 1, 2, 3].map((copy) =>
+              TICKER_ITEMS.map((item, idx) => (
+                <div key={`${copy}-${idx}`} className="flex items-center space-x-2 shrink-0" aria-hidden={copy > 0}>
+                  <item.Icon className="w-3.5 h-3.5 text-[#C6DFD1] shrink-0" />
+                  <span className="text-[#C6DFD1] font-semibold text-xs whitespace-nowrap">
+                    {language === 'fr' ? item.fr : item.en}
+                  </span>
+                  <span className="text-[#C6DFD1]/30 text-xs px-2">•</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
+      </div>
 
+      <header
+        className={`sticky top-0 z-40 bg-[#FDFBF7]/95 backdrop-blur-md border-b transition-shadow duration-300 ${
+          isScrolled ? 'border-[#E5E2D9] shadow-luxe-card' : 'border-[#EAF2ED] shadow-none'
+        }`}
+      >
         {/* Main Header Container */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 sm:h-20">
@@ -288,14 +290,29 @@ export function Header({
                         </div>
 
                         <div className="pt-1">
-                          <Link
-                            href="/account"
-                            onClick={() => setIsUserMenuOpen(false)}
-                            className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-[#EAF2ED] flex items-center space-x-2 font-medium"
-                          >
-                            <User className="w-3.5 h-3.5 text-[#2E5A44]" />
-                            <span>Account & Subscriptions</span>
-                          </Link>
+                          {/* Admins have no customer subscriptions of their own —
+                              everything they need lives in the dashboard, so the
+                              member portal entry is replaced rather than shown
+                              alongside it. */}
+                          {role === 'admin' ? (
+                            <Link
+                              href="/admin"
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-[#EAF2ED] flex items-center space-x-2 font-medium"
+                            >
+                              <LayoutDashboard className="w-3.5 h-3.5 text-[#2E5A44]" />
+                              <span>Admin Dashboard</span>
+                            </Link>
+                          ) : (
+                            <Link
+                              href="/account"
+                              onClick={() => setIsUserMenuOpen(false)}
+                              className="w-full px-4 py-2 text-left text-xs text-gray-700 hover:bg-[#EAF2ED] flex items-center space-x-2 font-medium"
+                            >
+                              <User className="w-3.5 h-3.5 text-[#2E5A44]" />
+                              <span>Account & Subscriptions</span>
+                            </Link>
+                          )}
                           <button
                             onClick={() => {
                               logout();
@@ -480,11 +497,11 @@ export function Header({
                       </div>
                       <div className="flex items-center space-x-2 pt-2 border-t border-gray-100">
                         <Link
-                          href="/account"
+                          href={role === 'admin' ? '/admin' : '/account'}
                           onClick={() => setIsMobileMenuOpen(false)}
                           className="flex-1 py-2 px-3 bg-[#EAF2ED] hover:bg-[#DDF0E5] text-[#2E5A44] rounded-xl text-xs font-bold text-center"
                         >
-                          Account Portal
+                          {role === 'admin' ? 'Admin Dashboard' : 'Account Portal'}
                         </Link>
                         <button
                           onClick={() => {

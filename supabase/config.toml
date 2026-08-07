@@ -1,0 +1,62 @@
+project_id = "true-formula"
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/login", "https://trueformula.io/login"]
+
+# Long enough that a member correcting a typo in their details is not signed out
+# mid-flow.
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+
+enable_signup = true
+enable_anonymous_sign_ins = false
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+
+# Off in local/dev so a mistyped address can be corrected and re-submitted
+# immediately, instead of stranding the account on an unconfirmed email.
+# Turn this on for production in the Supabase dashboard.
+enable_confirmations = false
+secure_password_change = false
+max_frequency = "10s"
+otp_length = 6
+otp_expiry = 3600
+
+[auth.rate_limit]
+# Account-creation limits. The defaults (30 sign-ups/hour, 2 emails/hour) are
+# easily exhausted when someone mistypes an address or password a few times and
+# retries — they then hit "email rate limit exceeded" and are locked out of
+# registering at all for the rest of the hour.
+sign_in_sign_ups = 300      # per 5 minutes per IP (default 30)
+email_sent = 30             # per hour (default 2)
+token_refresh = 300         # per 5 minutes per IP (default 150)
+token_verifications = 90    # per 5 minutes per IP (default 30)
+anonymous_users = 30        # per hour per IP
+
+[auth.email.template.confirmation]
+subject = "Confirm your TRUE FORMULA account"
+
+[db]
+port = 54322
+major_version = 15
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[storage]
+enabled = true
+file_size_limit = "5MiB"
+
+[storage.buckets.product-images]
+public = true
+file_size_limit = "5MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp", "image/avif", "image/svg+xml"]

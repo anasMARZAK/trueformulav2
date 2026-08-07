@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { RefreshCw, Pause, Play, XCircle, Calendar, CreditCard, Sparkles, Package } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { axiosClient } from '@/lib/api/axiosClient';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 interface EnrichedSubscription extends Omit<Subscription, 'intervalDays'> {
   productNameEn?: string;
@@ -22,8 +23,11 @@ interface EnrichedSubscription extends Omit<Subscription, 'intervalDays'> {
 export function SubscriptionsManager() {
   const { language, t } = useLanguage();
   const { user } = useAuth();
+  const confirm = useConfirm();
   const queryClient = useQueryClient();
-  const userId = user?.id || '00000000-0000-4000-a000-000000000001';
+  // No demo-user fallback: the API scopes to the session, so a placeholder id
+  // here only produced a misleading cache key.
+  const userId = user?.id;
 
   const { data: fetchedSubscriptions, isLoading } = useSubscriptionsQuery(userId);
   const subscriptions: EnrichedSubscription[] = fetchedSubscriptions || [];
@@ -220,8 +224,15 @@ export function SubscriptionsManager() {
                 {sub.status !== 'cancelled' && (
                   <button
                     disabled={isActioning}
-                    onClick={() => {
-                      if (confirm(t.portal.confirmCancelText)) {
+                    onClick={async () => {
+                      const confirmed = await confirm({
+                        title: t.portal.confirmCancelTitle,
+                        description: `${title} — ${t.portal.confirmCancelText}`,
+                        confirmLabel: t.portal.cancelSub,
+                        cancelLabel: language === 'fr' ? 'Garder mon abonnement' : 'Keep My Subscription',
+                        intent: 'danger',
+                      });
+                      if (confirmed) {
                         handleUpdateStatus(sub.id, 'cancelled');
                       }
                     }}

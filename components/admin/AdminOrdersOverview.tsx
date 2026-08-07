@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n/useLanguage';
-import { Search, RefreshCw, Inbox } from 'lucide-react';
+import { Search, RefreshCw, Inbox, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface OrderItemAdmin {
@@ -20,8 +20,11 @@ interface OrderItemAdmin {
 interface OrderAdmin {
   id: string;
   userId: string;
-  customerEmail?: string;
-  customerName?: string;
+  customerEmail?: string | null;
+  customerName?: string | null;
+  customerRole?: string | null;
+  isRegistered?: boolean;
+  paymentMethod?: string;
   status: string;
   totalAmount: string;
   shippingAddress: any;
@@ -170,9 +173,13 @@ export function AdminOrdersOverview() {
               <tbody className="divide-y divide-[#EAF2ED] text-xs font-sans">
                 {filteredOrders.map((order) => {
                   const customerName =
-                    order.customerName || order.shippingAddress?.fullName || 'Customer';
+                    order.customerName ||
+                    order.shippingAddress?.fullName ||
+                    (isEn ? 'Guest checkout' : 'Commande invitée');
+                  // The API resolves this against `profiles`, so a real address
+                  // appears here instead of the raw account UUID.
                   const customerEmail =
-                    order.customerEmail || order.shippingAddress?.email || order.userId;
+                    order.customerEmail || order.shippingAddress?.email || null;
                   const formattedDate = new Date(order.createdAt).toLocaleDateString(
                     isEn ? 'en-US' : 'fr-FR',
                     { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }
@@ -185,10 +192,30 @@ export function AdminOrdersOverview() {
                       </td>
 
                       <td className="py-4 px-5">
-                        <div className="font-semibold text-[#111827]">{customerName}</div>
-                        <div className="text-[10px] text-[#9CA3AF] font-mono truncate max-w-[180px]">
-                          {customerEmail}
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-semibold text-[#111827]">{customerName}</span>
+                          {order.isRegistered && (
+                            <span
+                              title={isEn ? 'Registered account' : 'Compte enregistré'}
+                              className="text-[9px] font-bold uppercase bg-[#EAF2ED] text-[#2E5A44] border border-[#C6DFD1] px-1.5 py-0.5 rounded"
+                            >
+                              {isEn ? 'Member' : 'Membre'}
+                            </span>
+                          )}
                         </div>
+                        {customerEmail ? (
+                          <a
+                            href={`mailto:${customerEmail}`}
+                            className="text-[10px] text-[#6B7280] font-mono truncate max-w-[200px] inline-flex items-center gap-1 hover:text-[#2E5A44] hover:underline"
+                          >
+                            <Mail className="w-2.5 h-2.5 shrink-0" />
+                            {customerEmail}
+                          </a>
+                        ) : (
+                          <span className="text-[10px] text-[#C4C0B6] italic">
+                            {isEn ? 'no email on record' : 'aucun email enregistré'}
+                          </span>
+                        )}
                       </td>
 
                       <td className="py-4 px-5 text-[#6B7280] whitespace-nowrap">{formattedDate}</td>

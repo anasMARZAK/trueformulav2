@@ -3,20 +3,26 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
   try {
     const supabase = createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
 
-    const { searchParams } = new URL(req.url);
-    const requestedUserId = searchParams.get('userId');
+    // The signed-in session is the only source of identity here. The `userId`
+    // query param is advisory and never overrides it, otherwise any caller
+    // could read another member's subscriptions.
+    if (!user) {
+      return NextResponse.json({ success: true, subscriptions: [] });
+    }
+    const targetUserId = user.id;
 
-    const targetUserId = user?.id || requestedUserId || '00000000-0000-4000-a000-000000000001';
-
+    // Scoped strictly to the caller. This previously OR-ed in a hardcoded demo
+    // user id, so every account — including admin accounts that have never
+    // subscribed — saw that demo member's three "active subscriptions".
     const { data: subsData, error: subsErr } = await supabase
       .from('subscriptions')
       .select('*')
-      .or(`user_id.eq.${targetUserId},user_id.eq.00000000-0000-4000-a000-000000000001`)
+      .eq('user_id', targetUserId)
       .order('created_at', { ascending: false });
 
     if (subsErr || !subsData || subsData.length === 0) {

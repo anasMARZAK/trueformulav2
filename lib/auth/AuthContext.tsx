@@ -19,7 +19,7 @@ interface AuthContextType {
   isLoggedIn: boolean;
   login: (email: string, password?: string) => Promise<boolean>;
   register: (email: string, password?: string, fullName?: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<boolean>;
   isHydrated: boolean;
 }
@@ -27,6 +27,22 @@ interface AuthContextType {
 const AUTH_STORAGE_KEY = 'True Formula_auth_session';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/**
+ * Reads the session that `login`/`register` just persisted. React state has not
+ * re-rendered yet at the moment those promises resolve, so callers that need the
+ * resolved role immediately (to pick a redirect) read it from here rather than
+ * inferring it from the email address.
+ */
+export function readPersistedSession(): AuthUser | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = localStorage.getItem(AUTH_STORAGE_KEY);
+    return saved ? (JSON.parse(saved) as AuthUser) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);

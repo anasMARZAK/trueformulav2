@@ -29,7 +29,8 @@ interface OrderDisplay {
 export function OrderHistory() {
   const { language, t } = useLanguage();
   const { user } = useAuth();
-  const userId = user?.id || '00000000-0000-4000-a000-000000000001';
+  // No demo-user fallback — see SubscriptionsManager.
+  const userId = user?.id;
 
   const { data: fetchedOrders, isLoading } = useOrdersQuery(userId);
   const orders: OrderDisplay[] = fetchedOrders || [];

@@ -5,6 +5,7 @@ import { useLanguage } from '@/lib/i18n/useLanguage';
 import { type Subscription } from '@/lib/db/schema';
 import { Search, RefreshCw, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 interface EnrichedSub extends Subscription {
   productNameEn?: string;
@@ -22,6 +23,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 export function AdminSubsOverview() {
   const { language, t } = useLanguage();
+  const confirm = useConfirm();
   const [subscriptions, setSubscriptions] = useState<EnrichedSub[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -49,8 +51,18 @@ export function AdminSubsOverview() {
 
   const handleUpdateStatus = async (id: string, newStatus: 'active' | 'paused' | 'cancelled') => {
     // Cancelling is not reversible from this table, so confirm it first.
-    if (newStatus === 'cancelled' && !window.confirm(t.portal.confirmCancelText)) {
-      return;
+    if (newStatus === 'cancelled') {
+      const confirmed = await confirm({
+        title: t.portal.confirmCancelTitle,
+        description:
+          language === 'fr'
+            ? 'Cet abonnement client sera définitivement annulé et cessera de se renouveler. Le membre perdra sa remise de 20%.'
+            : 'This customer subscription will be cancelled and will stop renewing. The member loses their 20% recurring discount.',
+        confirmLabel: language === 'fr' ? 'Annuler l’abonnement' : 'Cancel Subscription',
+        cancelLabel: language === 'fr' ? 'Conserver' : 'Keep Active',
+        intent: 'danger',
+      });
+      if (!confirmed) return;
     }
 
     try {

@@ -21,18 +21,23 @@ import {
   ChevronRight,
   Menu,
   X,
+  LogOut,
+  Users,
 } from 'lucide-react';
 
 import { useRouter } from 'next/navigation';
 import { DynamicAnalyticsChart } from '@/components/admin/DynamicAnalyticsChart';
+import { AdminCustomersOverview } from '@/components/admin/AdminCustomersOverview';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
-type AdminTab = 'overview' | 'products' | 'subscriptions' | 'orders';
+type AdminTab = 'overview' | 'products' | 'subscriptions' | 'orders' | 'customers';
 
 const NAV_ITEMS: Array<{ key: AdminTab; label: string; icon: typeof LayoutDashboard }> = [
   { key: 'overview', label: 'Dashboard', icon: LayoutDashboard },
   { key: 'products', label: 'Products', icon: Package },
   { key: 'orders', label: 'Orders', icon: ShoppingBag },
   { key: 'subscriptions', label: 'Subscriptions', icon: RefreshCw },
+  { key: 'customers', label: 'Customers', icon: Users },
 ];
 
 const PAGE_TITLES: Record<AdminTab, { title: string; subtitle: string }> = {
@@ -40,17 +45,34 @@ const PAGE_TITLES: Record<AdminTab, { title: string; subtitle: string }> = {
   products: { title: 'Product Catalog', subtitle: 'Manage formulations, pricing, and stock levels.' },
   orders: { title: 'Orders', subtitle: 'Customer orders and fulfilment status.' },
   subscriptions: { title: 'Subscriptions', subtitle: 'Recurring members and monthly recurring revenue.' },
+  customers: { title: 'Customers', subtitle: 'Registered accounts, lifetime spend, and recurring status.' },
 };
 
 /** Matches the order_status enum — revenue recognises settled orders only. */
 const SETTLED_STATUS = 'completed';
 
 export default function AdminPage() {
-  const { role, user, isHydrated } = useAuth();
+  const { role, user, isHydrated, logout } = useAuth();
   const router = useRouter();
+  const confirm = useConfirm();
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    const confirmed = await confirm({
+      title: 'Sign out of the admin studio?',
+      description: 'Your session will end and you will be returned to the storefront.',
+      confirmLabel: 'Sign Out',
+      cancelLabel: 'Stay Signed In',
+      intent: 'warning',
+    });
+    if (!confirmed) return;
+
+    await logout();
+    toast.success('Signed out', { description: 'Your admin session has ended.' });
+    router.push('/');
+  };
 
   useEffect(() => {
     // Only check role after auth state has been hydrated from localStorage/Supabase
@@ -156,7 +178,7 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FDFBF7] text-[#111827] flex">
+    <div className="min-h-screen bg-[#FDFBF7] text-[#111827]">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div
@@ -165,9 +187,11 @@ export default function AdminPage() {
         />
       )}
 
-      {/* ── Sidebar ──────────────────────────────────────────────────────── */}
+      {/* ── Sidebar ──────────────────────────────────────────────────────────
+          Pinned with `fixed` at every breakpoint. It was previously `lg:sticky`
+          inside a flex row, which let it scroll away with the page content. */}
       <aside
-        className={`fixed lg:sticky top-0 left-0 h-screen w-64 bg-white border-r border-[#E5E2D9] flex flex-col justify-between z-50 transition-transform duration-300 ${
+        className={`fixed top-0 left-0 h-screen w-64 bg-white border-r border-[#E5E2D9] flex flex-col justify-between z-50 transition-transform duration-300 overflow-y-auto ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -237,7 +261,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="p-4 m-3 rounded-2xl border border-[#E5E2D9] bg-[#FDFBF7]">
+        <div className="p-4 m-3 rounded-2xl border border-[#E5E2D9] bg-[#FDFBF7] space-y-3 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-[#EAF2ED] text-[#2E5A44] font-bold text-xs flex items-center justify-center border border-[#C6DFD1] shrink-0">
               {user?.fullName ? user.fullName[0].toUpperCase() : 'A'}
@@ -251,11 +275,19 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
+
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl border border-[#F2C9C9] bg-white text-[11px] font-bold text-[#9A3A3A] hover:bg-[#FDECEC] transition-colors cursor-pointer focus-luxe"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign Out</span>
+          </button>
         </div>
       </aside>
 
       {/* ── Main ─────────────────────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 flex flex-col">
+      <div className="min-w-0 flex flex-col lg:pl-64">
         <header className="bg-[#FDFBF7]/90 backdrop-blur-md border-b border-[#E5E2D9] px-5 sm:px-8 py-4 flex items-center justify-between gap-4 sticky top-0 z-30">
           <div className="flex items-center gap-4 min-w-0">
             <button
@@ -278,15 +310,27 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <div
-            className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 border ${
-              role === 'admin'
-                ? 'bg-[#EAF2ED] text-[#2E5A44] border-[#C6DFD1]'
-                : 'bg-[#F5F0E4] text-[#6B7280] border-[#E5E2D9]'
-            }`}
-          >
-            <ShieldAlert className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{role.toUpperCase()}</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <div
+              className={`px-3 py-1.5 rounded-full text-[11px] font-bold flex items-center gap-1.5 border ${
+                role === 'admin'
+                  ? 'bg-[#EAF2ED] text-[#2E5A44] border-[#C6DFD1]'
+                  : 'bg-[#F5F0E4] text-[#6B7280] border-[#E5E2D9]'
+              }`}
+            >
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{role.toUpperCase()}</span>
+            </div>
+
+            {/* Sign out is reachable from any tab without opening the sidebar. */}
+            <button
+              onClick={handleSignOut}
+              title="Sign out"
+              className="px-3 py-1.5 rounded-full border border-[#E5E2D9] bg-white text-[11px] font-bold text-[#9A3A3A] hover:bg-[#FDECEC] hover:border-[#F2C9C9] transition-colors flex items-center gap-1.5 cursor-pointer focus-luxe"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
           </div>
         </header>
 
@@ -330,6 +374,7 @@ export default function AdminPage() {
           {activeTab === 'products' && <ProductCrudTable />}
           {activeTab === 'orders' && <AdminOrdersOverview />}
           {activeTab === 'subscriptions' && <AdminSubsOverview />}
+          {activeTab === 'customers' && <AdminCustomersOverview />}
         </main>
 
         <CartDrawer onCheckout={() => setIsCheckoutOpen(true)} />

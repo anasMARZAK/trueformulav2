@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/storefront/Header';
-import { useAuth } from '@/lib/auth/AuthContext';
+import { useAuth, readPersistedSession } from '@/lib/auth/AuthContext';
 import { useLanguage } from '@/lib/i18n/useLanguage';
 import { useCartStore } from '@/lib/store/useCartStore';
+import { describeAuthError } from '@/lib/auth/authErrors';
 import { toast } from 'sonner';
 import {
   Sparkles,
@@ -34,15 +33,44 @@ export default function LoginPage() {
   const [fullName, setFullName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // When Supabase rate-limits the account, further submits are guaranteed to
+  // fail and only push the limit further out. Block the button and count down
+  // instead — the typed details stay on screen so they can be corrected.
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setTimeout(() => setCooldown((seconds) => seconds - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [cooldown]);
+
+  const reportAuthError = (err: unknown) => {
+    const friendly = describeAuthError(err, language);
+    toast.error(friendly.title, { description: friendly.description });
+    if (friendly.kind === 'rate_limited' && friendly.retryAfterSeconds) {
+      setCooldown(friendly.retryAfterSeconds);
+    }
+    // A duplicate account is a sign-in, not a sign-up — move them across so the
+    // form they are looking at can actually succeed.
+    if (friendly.kind === 'already_registered') {
+      setMode('login');
+      setPassword('');
+    }
+  };
+
   const getDestination = (isAdmin: boolean) => {
     let redirectUrl: string | null = null;
     if (typeof window !== 'undefined') {
       redirectUrl = new URLSearchParams(window.location.search).get('redirect');
     }
+    // An explicit ?redirect= (set by the middleware when it bounces an
+    // unauthenticated request) always wins, so users resume where they were.
     if (redirectUrl && redirectUrl.startsWith('/') && !redirectUrl.startsWith('//')) {
       return redirectUrl;
     }
-    return isAdmin ? '/admin' : '/account';
+    // Admins go straight to the dashboard; everyone else lands in the catalog,
+    // which is what a shopper wants to see right after signing in.
+    return isAdmin ? '/admin' : '/products';
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -62,9 +90,7 @@ export default function LoginPage() {
       });
       setMode('login');
     } catch (err: any) {
-      toast.error(language === 'fr' ? 'Erreur de réinitialisation' : 'Password Reset Error', {
-        description: err.message || (language === 'fr' ? 'Impossible d’envoyer le lien' : 'Failed to send reset link'),
-      });
+      reportAuthError(err);
     } finally {
       setIsLoading(false);
     }
@@ -95,13 +121,9 @@ export default function LoginPage() {
           description: language === 'fr' ? `Bienvenue chez TRUE FORMULA, ${fullName || email}` : `Welcome to TRUE FORMULA, ${fullName || email}`,
         });
       }
-      // Read the actual role that was set in AuthContext by login/register
-      const savedSession = localStorage.getItem('True Formula_auth_session');
-      if (savedSession) {
-        try {
-          const parsed = JSON.parse(savedSession);
-          if (parsed?.role === 'admin') userRole = 'admin';
-        } catch {}
+      // Read the actual role that login/register resolved, rather than guessing.
+      if (readPersistedSession()?.role === 'admin') {
+        userRole = 'admin';
       }
       // Use router.push for proper Next.js client-side navigation
       // This ensures middleware runs correctly with the session cookies
@@ -109,9 +131,7 @@ export default function LoginPage() {
       const destination = getDestination(userRole === 'admin');
       router.push(destination);
     } catch (err: any) {
-      toast.error(language === 'fr' ? 'Erreur d\'authentification' : 'Authentication Error', {
-        description: err.message || (language === 'fr' ? 'Identifiants invalides' : 'Invalid email or password'),
-      });
+      reportAuthError(err);
     } finally {
       setIsLoading(false);
     }
@@ -144,9 +164,7 @@ export default function LoginPage() {
       const destination = getDestination(demoRole === 'admin');
       router.push(destination);
     } catch (err: any) {
-      toast.error(language === 'fr' ? 'Erreur de connexion démo' : 'Demo Sign In Error', {
-        description: err.message || 'Unable to log in with demo account',
-      });
+      reportAuthError(err);
     } finally {
       setIsLoading(false);
     }
@@ -336,11 +354,17 @@ export default function LoginPage() {
                   {/* Submit Button */}
                   <button
                     type="submit"
-                    disabled={isLoading}
-                    className="w-full py-4 bg-[#111827] hover:bg-[#1f2937] text-white font-bold rounded-xl shadow-luxe transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer mt-6 disabled:opacity-50"
+                    disabled={isLoading || cooldown > 0}
+                    className="w-full py-4 bg-[#111827] hover:bg-[#1f2937] text-white font-bold rounded-xl shadow-luxe transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isLoading ? (
                       <RefreshCw className="w-5 h-5 animate-spin text-[#C6DFD1]" />
+                    ) : cooldown > 0 ? (
+                      <span className="font-mono">
+                        {language === 'fr'
+                          ? `Réessayez dans ${cooldown}s`
+                          : `Try again in ${cooldown}s`}
+                      </span>
                     ) : (
                       <>
                         <span>
@@ -366,6 +390,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => handleDemoSignIn('customer')}
+                    disabled={isLoading || cooldown > 0}
                     className="px-3.5 py-2.5 bg-white border border-[#C6DFD1] hover:border-[#2E5A44] hover:bg-[#EAF2ED] text-[#111827] rounded-xl text-xs font-bold transition-all text-center cursor-pointer"
                   >
                     👤 {language === 'fr' ? 'Démo Client' : 'Customer Demo'}
@@ -373,6 +398,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => handleDemoSignIn('admin')}
+                    disabled={isLoading || cooldown > 0}
                     className="px-3.5 py-2.5 bg-[#2E5A44] hover:bg-[#234735] text-white rounded-xl text-xs font-bold transition-all text-center cursor-pointer shadow-2xs"
                   >
                     🛡️ {language === 'fr' ? 'Démo Admin' : 'Admin Demo'}

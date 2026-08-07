@@ -5,6 +5,7 @@ import { AuthProvider } from '@/lib/auth/AuthContext';
 import { ClientProviders } from '@/components/providers/ClientProviders';
 import { Toaster } from 'sonner';
 import { DevToolbar } from '@/components/ui/DevToolbar';
+import { ConfirmProvider } from '@/components/ui/confirm-dialog';
 
 export const metadata: Metadata = {
   title: 'TRUE FORMULA — PHARMACEUTICAL-GRADE NUTRITION',
@@ -17,7 +18,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    // No `scroll-smooth` on <html>: Lenis already animates the scroll position,
+    // and CSS smooth scrolling animates it a second time on top — the two
+    // easings fight each other and the page stutters on anchor jumps.
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -30,9 +34,11 @@ export default function RootLayout({
         <ClientProviders>
           <LanguageProvider>
             <AuthProvider>
-              {children}
-              <DevToolbar />
-              <Toaster position="bottom-right" richColors />
+              <ConfirmProvider>
+                {children}
+                <DevToolbar />
+                <Toaster position="bottom-right" richColors />
+              </ConfirmProvider>
             </AuthProvider>
           </LanguageProvider>
         </ClientProviders>

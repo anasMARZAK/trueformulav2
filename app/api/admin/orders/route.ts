@@ -8,11 +8,24 @@ export async function GET() {
 
   try {
     const supabase = createAdminSupabaseClient();
-    const { data: ordersData, error: ordersErr } = await supabase.from('orders').select('*');
+    const { data: ordersData, error: ordersErr } = await supabase
+      .from('orders')
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (ordersErr || !ordersData) {
       return NextResponse.json({ success: true, orders: [] });
     }
+
+    // Resolve the account behind each order. Without this the table fell back to
+    // rendering the raw user_id UUID whenever an order carried no denormalised
+    // customer_email, which read as a meaningless string of characters.
+    const { data: profilesData } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, role, created_at');
+    const profilesMap = new Map(
+      (profilesData || []).map((profile) => [profile.id, profile])
+    );
 
     const { data: itemsData } = await supabase.from('order_items').select('*');
     const itemsMap = new Map<string, any[]>();
@@ -37,17 +50,34 @@ export async function GET() {
       });
     }
 
-    const result = ordersData.map((order) => ({
-      id: order.id,
-      userId: order.user_id,
-      customerEmail: order.customer_email,
-      customerName: order.customer_name,
-      totalAmount: String(order.total_amount),
-      status: order.status,
-      shippingAddress: order.shipping_address,
-      createdAt: order.created_at ? new Date(order.created_at) : new Date(),
-      items: itemsMap.get(order.id) || [],
-    }));
+    const result = ordersData.map((order) => {
+      const profile = profilesMap.get(order.user_id);
+      const shipping = (order.shipping_address || {}) as Record<string, any>;
+
+      // The linked account is the source of truth: `customer_email` is a
+      // denormalised copy taken at checkout and goes stale when an address
+      // changes. Guest orders have no profile, so the recorded values remain the
+      // fallback. The raw user_id is never shown as an identity.
+      const customerEmail =
+        profile?.email || order.customer_email || shipping.email || null;
+      const customerName =
+        profile?.full_name || order.customer_name || shipping.fullName || null;
+
+      return {
+        id: order.id,
+        userId: order.user_id,
+        customerEmail,
+        customerName,
+        customerRole: profile?.role || null,
+        isRegistered: Boolean(profile),
+        totalAmount: String(order.total_amount),
+        status: order.status,
+        paymentMethod: order.payment_method || 'mock_card',
+        shippingAddress: order.shipping_address,
+        createdAt: order.created_at ? new Date(order.created_at) : new Date(),
+        items: itemsMap.get(order.id) || [],
+      };
+    });
 
     return NextResponse.json({ success: true, orders: result });
   } catch (error: any) {
@@ -64,8 +94,14 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const { orderId, status } = body;
 
-    if (!orderId || !status || !['completed', 'pending', 'failed', 'cancelled', 'refunded'].includes(status)) {
-      return NextResponse.json({ success: false, error: 'Invalid orderId or status' }, { status: 400 });
+    // Mirrors the order_status enum exactly. 'cancelled' was accepted here but
+    // is not a member of the enum, so it produced an opaque database error.
+    const ORDER_STATUSES = ['pending', 'completed', 'failed', 'refunded'];
+    if (!orderId || !status || !ORDER_STATUSES.includes(status)) {
+      return NextResponse.json(
+        { success: false, error: `Invalid orderId, or status must be one of: ${ORDER_STATUSES.join(', ')}` },
+        { status: 400 }
+      );
     }
 
     const supabase = createAdminSupabaseClient();

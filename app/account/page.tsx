@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/storefront/Header';
 import { SubscriptionsManager } from '@/components/portal/SubscriptionsManager';
 import { OrderHistory } from '@/components/portal/OrderHistory';
@@ -13,10 +14,32 @@ import { User, RefreshCw, ShoppingBag, ShieldCheck, Sparkles } from 'lucide-reac
 
 export default function AccountPage() {
   const { t } = useLanguage();
-  const { user, role } = useAuth();
+  const { user, role, isHydrated } = useAuth();
+  const router = useRouter();
   const openCart = useCartStore((state) => state.openCart);
   const [activeTab, setActiveTab] = useState<'subscriptions' | 'orders'>('subscriptions');
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+
+  // Admin accounts have no customer subscriptions or order history of their own;
+  // the dashboard already covers everything. Send them there rather than
+  // rendering an empty member portal.
+  useEffect(() => {
+    if (!isHydrated) return;
+    if (role === 'admin') {
+      router.replace('/admin');
+    }
+  }, [isHydrated, role, router]);
+
+  if (isHydrated && role === 'admin') {
+    return (
+      <div className="min-h-screen bg-[#FDFBF7] flex items-center justify-center">
+        <div className="flex items-center gap-3 text-xs font-semibold text-[#4B5563]">
+          <RefreshCw className="w-4 h-4 animate-spin text-[#2E5A44]" />
+          <span>Redirecting to the admin dashboard…</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FDFBF7] text-[#111827] flex flex-col justify-between">

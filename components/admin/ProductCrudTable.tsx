@@ -7,9 +7,11 @@ import { useLanguage } from '@/lib/i18n/useLanguage';
 import { ProductModal } from './ProductModal';
 import { Plus, Edit, Trash2, Search, RefreshCw, PackageCheck, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 
 export function ProductCrudTable() {
   const { language, t } = useLanguage();
+  const confirm = useConfirm();
   const [products, setProducts] = useState<Product[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -46,9 +48,22 @@ export function ProductCrudTable() {
   };
 
   const handleDeleteProduct = async (id: string, name: string) => {
-    if (!confirm(`${t.admin.products.confirmDelete} (${name})`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: t.admin.products.deleteProduct,
+      description: (
+        <>
+          {t.admin.products.confirmDelete}{' '}
+          <strong className="font-semibold text-[#111827]">{name}</strong>
+          {language === 'fr'
+            ? ' sera retiré du catalogue et de la boutique. Cette action est irréversible.'
+            : ' will be removed from the catalog and the storefront. This cannot be undone.'}
+        </>
+      ),
+      confirmLabel: language === 'fr' ? 'Supprimer' : 'Delete Product',
+      cancelLabel: t.admin.cancel,
+      intent: 'destructive',
+    });
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`/api/admin/products?id=${id}`, {

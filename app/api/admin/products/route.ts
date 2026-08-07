@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient, createAdminSupabaseClient } from '@/lib/supabase/server';
+import {
+  createAdminSupabaseClient,
+  hasServiceRoleKey,
+  SERVICE_ROLE_MISSING_MESSAGE,
+} from '@/lib/supabase/server';
 import { verifyAdminServerSession } from '@/lib/auth/verifyAdmin';
 import { mockDb } from '@/lib/db';
 import { type Product } from '@/lib/db/schema';
@@ -63,6 +67,15 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const adminCheck = await verifyAdminServerSession();
   if (!adminCheck.authorized) return adminCheck.errorResponse!;
+
+  // Product writes bypass RLS via the service role; without it Supabase rejects
+  // the insert/update/delete with an opaque policy violation.
+  if (!hasServiceRoleKey()) {
+    return NextResponse.json(
+      { success: false, error: SERVICE_ROLE_MISSING_MESSAGE },
+      { status: 500 }
+    );
+  }
 
   try {
     const body = await req.json();
@@ -138,6 +151,15 @@ export async function PUT(req: NextRequest) {
   const adminCheck = await verifyAdminServerSession();
   if (!adminCheck.authorized) return adminCheck.errorResponse!;
 
+  // Product writes bypass RLS via the service role; without it Supabase rejects
+  // the insert/update/delete with an opaque policy violation.
+  if (!hasServiceRoleKey()) {
+    return NextResponse.json(
+      { success: false, error: SERVICE_ROLE_MISSING_MESSAGE },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await req.json();
     if (!body.id) {
@@ -208,6 +230,15 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const adminCheck = await verifyAdminServerSession();
   if (!adminCheck.authorized) return adminCheck.errorResponse!;
+
+  // Product writes bypass RLS via the service role; without it Supabase rejects
+  // the insert/update/delete with an opaque policy violation.
+  if (!hasServiceRoleKey()) {
+    return NextResponse.json(
+      { success: false, error: SERVICE_ROLE_MISSING_MESSAGE },
+      { status: 500 }
+    );
+  }
 
   try {
     const { searchParams } = new URL(req.url);

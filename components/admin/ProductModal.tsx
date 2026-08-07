@@ -3,10 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import { type Product } from '@/lib/db/schema';
 import { useLanguage } from '@/lib/i18n/useLanguage';
-import { X, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
 import { z } from 'zod';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { ProductImagePicker } from './ProductImagePicker';
 
 const productSchema = z.object({
   nameEn: z.string().min(2, 'English name must be at least 2 characters'),
@@ -30,16 +31,6 @@ interface ProductModalProps {
   product?: Product | null;
   onSaveSuccess: () => void;
 }
-
-const PRESET_IMAGES = [
-  '/images/whey-isolate.svg',
-  '/images/creatine.svg',
-  '/images/collagen.svg',
-  '/images/protein-bar.svg',
-  '/images/plant-protein.svg',
-  '/images/pre-workout.svg',
-  '/images/steel-shaker.svg',
-];
 
 export function ProductModal({ isOpen, onClose, product, onSaveSuccess }: ProductModalProps) {
   const { t } = useLanguage();
@@ -109,6 +100,12 @@ export function ProductModal({ isOpen, onClose, product, onSaveSuccess }: Produc
         }
       });
       setErrors(fieldErrors);
+      // The form scrolls, so inline messages can land off-screen and the submit
+      // appeared to do nothing. Surface the count as well.
+      const count = Object.keys(fieldErrors).length;
+      toast.error(`${count} field${count === 1 ? '' : 's'} need attention`, {
+        description: Object.values(fieldErrors)[0],
+      });
       return;
     }
 
@@ -295,36 +292,16 @@ export function ProductModal({ isOpen, onClose, product, onSaveSuccess }: Produc
             </div>
           </div>
 
-          {/* Image Selection */}
+          {/* Image Selection — upload, name, and preview rather than a raw path */}
           <div>
-            <label className="block font-bold text-gray-700 uppercase mb-1">
+            <label className="block font-bold text-gray-700 uppercase mb-1.5">
               {t.admin.products.imageUrl} *
             </label>
-            <div className="flex gap-2">
-              <select
-                value={PRESET_IMAGES.includes(formData.imageUrl) ? formData.imageUrl : 'custom'}
-                onChange={(e) => {
-                  if (e.target.value !== 'custom') {
-                    setFormData({ ...formData, imageUrl: e.target.value });
-                  }
-                }}
-                className="px-3 py-2 bg-white border border-[#C6DFD1] rounded-xl outline-none"
-              >
-                {PRESET_IMAGES.map((img) => (
-                  <option key={img} value={img}>
-                    {img}
-                  </option>
-                ))}
-                <option value="custom">Custom Path...</option>
-              </select>
-              <input
-                type="text"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                placeholder="/images/whey-isolate.svg"
-                className="flex-1 px-3 py-2 bg-white border border-[#C6DFD1] rounded-xl outline-none font-mono"
-              />
-            </div>
+            <ProductImagePicker
+              value={formData.imageUrl}
+              onChange={(url) => setFormData({ ...formData, imageUrl: url })}
+              error={errors.imageUrl}
+            />
           </div>
 
           {/* Flavors & Sizes */}

@@ -1,14 +1,18 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { axiosClient } from '@/lib/api/axiosClient';
 
+/**
+ * Member-portal subscriptions. Always hits the user endpoint, which scopes rows
+ * to the signed-in session — see useOrdersQuery for why the fallback was wrong.
+ */
 export function useSubscriptionsQuery(userId?: string) {
   return useQuery({
-    queryKey: ['subscriptions', userId || 'all'],
+    queryKey: ['subscriptions', userId ?? 'anonymous'],
     queryFn: async () => {
-      const endpoint = userId ? `/api/user/subscriptions?userId=${userId}` : '/api/admin/subscriptions';
-      const res = await axiosClient.get(endpoint);
+      const res = await axiosClient.get('/api/user/subscriptions');
       return res.data?.subscriptions || [];
     },
+    enabled: Boolean(userId),
   });
 }
 
